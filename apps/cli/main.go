@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/gorilla/websocket"
 	"github.com/pratikpatwe/RockOrBust/cli/cmd"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
+	ws "github.com/pratikpatwe/RockOrBust/cli/internal/ws"
 )
 
 func main() {
@@ -28,15 +31,42 @@ func main() {
 }
 
 // runDaemon is the entry point for the background process.
-// Phase 4 will replace the placeholder with the real WebSocket client loop.
+// It loads the config, starts the WebSocket client, and blocks until SIGTERM/SIGINT.
 func runDaemon(gatewayURL string) {
-	fmt.Fprintf(os.Stderr, "[daemon] starting with gateway: %s\n", gatewayURL)
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("[daemon] failed to load config: %v", err)
+	}
+	if cfg.Key == "" {
+		log.Fatal("[daemon] no key configured. Run 'rockorbust key set <key>' first.")
+	}
 
-	// Block until we receive a termination signal
+	// If a gateway URL was passed via flag, it overrides the config
+	if gatewayURL != "" {
+		cfg.GatewayURL = gatewayURL
+	}
+
+	log.Printf("[daemon] starting — gateway: %s, hostname will be auto-detected", cfg.GatewayURL)
+
+	// Phase 5 will implement the full proxy message handler.
+	// For now the handler logs every message received from the gateway.
+	handler := func(conn *websocket.Conn, raw []byte) {
+		log.Printf("[ws] received message: %s", string(raw))
+	}
+
+	client, err := ws.NewClient(cfg.GatewayURL, cfg.Key, handler)
+	if err != nil {
+		log.Fatalf("[daemon] failed to create WebSocket client: %v", err)
+	}
+
+	// Run the WebSocket loop in a goroutine so we can listen for signals
+	go client.Run()
+
+	// Block until SIGTERM or SIGINT
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	fmt.Fprintln(os.Stderr, "[daemon] shutting down")
-	os.Exit(0)
+	log.Println("[daemon] shutting down")
+	client.Stop()
 }

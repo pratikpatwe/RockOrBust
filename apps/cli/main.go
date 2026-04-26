@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/websocket"
 	"github.com/pratikpatwe/RockOrBust/cli/cmd"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/proxy"
 	ws "github.com/pratikpatwe/RockOrBust/cli/internal/ws"
 )
 
@@ -48,13 +48,10 @@ func runDaemon(gatewayURL string) {
 
 	log.Printf("[daemon] starting — gateway: %s, hostname will be auto-detected", cfg.GatewayURL)
 
-	// Phase 5 will implement the full proxy message handler.
-	// For now the handler logs every message received from the gateway.
-	handler := func(conn *websocket.Conn, raw []byte) {
-		log.Printf("[ws] received message: %s", string(raw))
-	}
+	// Create the proxy handler — manages HTTP requests and CONNECT tunnels
+	proxyHandler := proxy.NewHandler()
 
-	client, err := ws.NewClient(cfg.GatewayURL, cfg.Key, handler)
+	client, err := ws.NewClient(cfg.GatewayURL, cfg.Key, proxyHandler.Handle)
 	if err != nil {
 		log.Fatalf("[daemon] failed to create WebSocket client: %v", err)
 	}

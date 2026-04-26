@@ -3,8 +3,8 @@
 **Stealth proxy network for Playwright. Patch browser fingerprints, rotate residential IPs, and bypass TLS detection without touching your existing automation code.**
 
 [![License](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://img.shields.io/npm/v/@rockorbust/playwright-plugin?color=white)](https://www.npmjs.com/package/@rockorbust/playwright-plugin)
-[![Go version](https://img.shields.io/github/go-mod/go-version/pratikpatwe/RockOrBust?color=white)](https://golang.org)
+[![npm version](https://img.shields.io/badge/npm-coming%20soon-white)](https://www.npmjs.com/package/@rockorbust/playwright-plugin)
+[![Go](https://img.shields.io/badge/Go-1.21-white.svg)](https://golang.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-white.svg)](CONTRIBUTING.md)
 
 ---
@@ -245,4 +245,4 @@ Named after the AC/DC album. You either break through or you don't. There is no 
 
 ## License
 
-MIT © [Pratik Patwe](https://buildshot.xyz)
+MIT © [BuildShot](https://buildshot.xyz)

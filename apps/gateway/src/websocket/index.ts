@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { supabase } from '../lib/supabase';
 import { URL } from 'url';
+import { nodeRegistry } from '../lib/nodeRegistry';
 
 /**
  * Sets up the WebSocket server for node signaling.
@@ -73,6 +74,10 @@ export function setupWebSocket(server: Server) {
     }
 
     const currentNodeId = nodeData?.id || (nodeError ? null : null); // Handling possible null from previous block
+    if (currentNodeId) {
+      nodeRegistry.register(keyId, currentNodeId, hostname, ws);
+    }
+    
     console.log(`Node connected: ${hostname} (${ipAddress}) for key ${key.substring(0, 10)}...`);
 
     // 3. Heartbeat management
@@ -85,6 +90,8 @@ export function setupWebSocket(server: Server) {
     ws.on('close', async () => {
       clearInterval(pingInterval);
       console.log(`Node disconnected: ${hostname}`);
+
+      nodeRegistry.unregister(keyId, ws);
 
       // Update status to offline in Supabase
       if (nodeData?.id) {

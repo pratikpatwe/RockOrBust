@@ -40,7 +40,8 @@ export function setupWebSocket(server: Server) {
     const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
 
     // 2. Register node as online
-    // We update the existing node if it exists for this key/hostname, or insert a new one
+    // We update the existing node if it exists for this key/hostname, or insert a new one.
+    // This requires a UNIQUE(key_id, hostname) constraint on the rob_nodes table.
     const { data: nodeData, error: nodeError } = await supabase
       .from('rob_nodes')
       .upsert({
@@ -49,35 +50,20 @@ export function setupWebSocket(server: Server) {
         ip_address: ipAddress,
         status: true,
         last_ping: new Date().toISOString()
-      }, { onConflict: 'key_id, hostname' }) // Note: You might need a unique constraint in SQL for this to work perfectly
+      }, { onConflict: 'key_id, hostname' })
       .select()
       .single();
 
-    if (nodeError) {
-      console.error('Failed to register node:', nodeError);
-      // Fallback: If upsert fails due to missing constraint, just insert
-      const { data: insertData, error: insertError } = await supabase
-        .from('rob_nodes')
-        .insert([{
-          key_id: keyId,
-          hostname,
-          ip_address: ipAddress,
-          status: true,
-          last_ping: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (insertError) {
-        ws.close(1011, 'Internal server error');
-        return;
-      }
+    if (nodeError || !nodeData) {
+      console.error('CRITICAL: Failed to register node in Supabase.');
+      console.error('Error Details:', nodeError);
+      console.error('NOTE: Please confirm the UNIQUE constraint exists on rob_nodes(key_id, hostname) in your database.');
+      ws.close(1011, 'Internal server error: Node registration failed');
+      return;
     }
 
-    const currentNodeId = nodeData?.id || (nodeError ? null : null); // Handling possible null from previous block
-    if (currentNodeId) {
-      nodeRegistry.register(keyId, currentNodeId, hostname, ws);
-    }
+    const currentNodeId = nodeData.id;
+    nodeRegistry.register(keyId, currentNodeId, hostname, ws);
     
     console.log(`Node connected: ${hostname} (${ipAddress}) for key ${key.substring(0, 10)}...`);
 

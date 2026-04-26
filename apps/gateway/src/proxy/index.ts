@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { nodeRegistry } from '../lib/nodeRegistry';
 import { tunnelManager } from '../lib/tunnelManager';
 
+import { keyCache } from '../lib/keyCache';
+
 /**
  * The Proxy Engine handles incoming requests from the Playwright plugin.
  * It validates the key and selects an active node for tunneling.
@@ -37,60 +39,24 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
     return;
   }
 
-  const maxRetries = 3;
-  let attempts = 0;
-  let success = false;
+  const node = await getActiveNodeForKey(key);
+  if (!node) {
+    res.writeHead(502);
+    res.end('No active residential nodes available for this key');
+    return;
+  }
 
-  while (attempts < maxRetries && !success) {
-    attempts++;
-    const node = await getActiveNodeForKey(key);
+  // Collect request body
+  const bodyChunks: Buffer[] = [];
+  req.on('data', chunk => bodyChunks.push(chunk));
+  req.on('end', () => {
+    const fullBody = bodyChunks.length > 0 ? Buffer.concat(bodyChunks) : undefined;
+    console.log(`Forwarding HTTP ${req.method} ${req.url} to node ${node.hostname}`);
     
-    if (!node) {
-      if (attempts === 1) {
-        res.writeHead(502);
-        res.end('No active residential nodes available for this key');
-        return;
-      }
-      break; // Stop if we ran out of nodes
-    }
-
-    try {
-      // Collect request body (only on first attempt)
-      const bodyChunks: Buffer[] = [];
-      if (attempts === 1) {
-        await new Promise((resolve) => {
-          req.on('data', chunk => bodyChunks.push(chunk));
-          req.on('end', resolve);
-        });
-      }
-      
-      const fullBody = bodyChunks.length > 0 ? Buffer.concat(bodyChunks) : undefined;
-      
-      // Set a timeout for the node response (e.g., 30 seconds)
-      const timeout = setTimeout(() => {
-        console.warn(`Request timed out on node ${node.hostname}, retrying...`);
-        // We can't easily "cancel" the previous attempt here without more complex state,
-        // but we can trigger the next loop iteration.
-      }, 30000);
-
-      console.log(`Attempt ${attempts}: Forwarding HTTP ${req.method} ${req.url} to node ${node.hostname}`);
-      
-      // Note: In Phase 5 we'd ideally want forwardHttpRequest to return a promise or handle retries.
-      // For now, we'll implement the rotation shell.
-      tunnelManager.forwardHttpRequest(node.ws, req, res, fullBody);
-      clearTimeout(timeout);
-      success = true;
-    } catch (err) {
-      console.error(`Attempt ${attempts} failed on node ${node.hostname}:`, err);
-      // Wait a bit before retrying
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
-
-  if (!success && !res.writableEnded) {
-    res.writeHead(504);
-    res.end('Gateway Timeout: Failed to reach any residential nodes after multiple attempts');
-  }
+    // NOTE: Retry logic and proper async error handling will be implemented
+    // in a future phase once tunnelManager.forwardHttpRequest is refactored to return a Promise.
+    tunnelManager.forwardHttpRequest(node.ws, req, res, fullBody);
+  });
 }
 
 /**
@@ -136,19 +102,32 @@ function extractKey(req: http.IncomingMessage): string | null {
 }
 
 /**
- * Validates the key and picks an online node from the registry
+ * Validates the key and picks an online node from the registry.
+ * Uses an in-memory cache to reduce Supabase round-trips.
  */
 async function getActiveNodeForKey(keyString: string) {
-  // 1. Verify key in Supabase (we could cache this)
-  const { data: keyData } = await supabase
-    .from('rob_keys')
-    .select('id')
-    .eq('key_string', keyString)
-    .eq('status', 'active')
-    .single();
+  // Check in-memory cache first
+  let keyId = keyCache.get(keyString);
 
-  if (!keyData) return null;
+  if (!keyId) {
+    // 1. Verify key in Supabase
+    const { data: keyData } = await supabase
+      .from('rob_keys')
+      .select('id')
+      .eq('key_string', keyString)
+      .eq('status', 'active')
+      .single();
+
+    if (!keyData) {
+      // If no result from Supabase, ensure it's not in cache
+      keyCache.invalidate(keyString);
+      return null;
+    }
+
+    keyId = keyData.id;
+    keyCache.set(keyString, keyId as string);
+  }
 
   // 2. Get next available node from registry
-  return nodeRegistry.getNextNode(keyData.id);
+  return nodeRegistry.getNextNode(keyId as string);
 }

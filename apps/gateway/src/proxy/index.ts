@@ -2,6 +2,7 @@ import http from 'http';
 import net from 'net';
 import { supabase } from '../lib/supabase';
 import { nodeRegistry } from '../lib/nodeRegistry';
+import { tunnelManager } from '../lib/tunnelManager';
 
 /**
  * The Proxy Engine handles incoming requests from the Playwright plugin.
@@ -43,10 +44,14 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
     return;
   }
 
-  // Phase 4 will implement the actual data forwarding over WebSocket
-  console.log(`Proxying HTTP request for ${req.url} via node ${node.hostname}`);
-  res.writeHead(501);
-  res.end('Tunneling implementation coming in Phase 4');
+  // Collect request body
+  const bodyChunks: Buffer[] = [];
+  req.on('data', chunk => bodyChunks.push(chunk));
+  req.on('end', () => {
+    const fullBody = bodyChunks.length > 0 ? Buffer.concat(bodyChunks) : undefined;
+    console.log(`Forwarding HTTP ${req.method} ${req.url} to node ${node.hostname}`);
+    tunnelManager.forwardHttpRequest(node.ws, req, res, fullBody);
+  });
 }
 
 /**
@@ -68,10 +73,8 @@ async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socke
     return;
   }
 
-  // Phase 4 will implement the actual TCP stream forwarding
-  console.log(`Proxying HTTPS CONNECT for ${req.url} via node ${node.hostname}`);
-  socket.write('HTTP/1.1 501 Not Implemented\r\n\r\nTunneling implementation coming in Phase 4\r\n');
-  socket.end();
+  console.log(`Forwarding CONNECT ${req.url} to node ${node.hostname}`);
+  tunnelManager.forwardConnectRequest(node.ws, req, socket, head);
 }
 
 /**

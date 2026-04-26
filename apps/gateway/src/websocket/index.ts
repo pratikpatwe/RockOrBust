@@ -3,6 +3,7 @@ import { Server } from 'http';
 import { supabase } from '../lib/supabase';
 import { URL } from 'url';
 import { nodeRegistry } from '../lib/nodeRegistry';
+import { tunnelManager } from '../lib/tunnelManager';
 
 /**
  * Sets up the WebSocket server for node signaling.
@@ -106,9 +107,9 @@ export function setupWebSocket(server: Server) {
       console.error(`WebSocket error for node ${hostname}:`, err);
     });
 
-    // Message handling will be implemented in Phase 4 (Tunneling)
+    // Message handling for tunneling responses
     ws.on('message', (data) => {
-      // Logic for handling tunnel responses
+      tunnelManager.handleNodeMessage(ws, data.toString());
     });
   });
 

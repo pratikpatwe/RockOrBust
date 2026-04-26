@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import http from 'http';
 import authRoutes from './routes/auth';
 import { setupWebSocket } from './websocket';
+import { setupProxy } from './proxy';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/auth', authRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);
+setupProxy();
 
 server.listen(port, () => {
   console.log(`Rock or Bust Gateway listening on port ${port}`);

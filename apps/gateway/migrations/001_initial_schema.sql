@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS rob_nodes (
   ip_address TEXT,
   status BOOLEAN DEFAULT false,
   last_ping TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(key_id, hostname)
 );

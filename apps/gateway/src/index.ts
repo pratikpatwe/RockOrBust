@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'http';
 import authRoutes from './routes/auth';
+import { setupWebSocket } from './websocket';
 
 dotenv.config();
 
@@ -19,6 +21,9 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/auth', authRoutes);
 
-app.listen(port, () => {
+const server = http.createServer(app);
+setupWebSocket(server);
+
+server.listen(port, () => {
   console.log(`Rock or Bust Gateway listening on port ${port}`);
 });

@@ -169,7 +169,8 @@ npm run start
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-GATEWAY_PORT=8080
+PORT=8080
+PROXY_PORT=8888
 ```
 
 > [!NOTE]

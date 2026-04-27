@@ -24,7 +24,7 @@ app.use('/auth', authRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);
-setupProxy();
+setupProxy(server);
 
 server.listen(port, () => {
   console.log(`Rock or Bust Gateway listening on port ${port}`);

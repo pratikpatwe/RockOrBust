@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 const pidFileName = "rockorbust.pid"
@@ -81,14 +80,7 @@ func IsRunning(pid int) bool {
 	if pid == 0 {
 		return false
 	}
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	// On Unix, FindProcess always succeeds; we must send signal 0
-	// to actually check if the process is alive.
-	err = process.Signal(syscall.Signal(0))
-	return err == nil
+	return isRunning(pid)
 }
 
 // Stop sends SIGTERM to the daemon and removes the PID file.
@@ -102,12 +94,7 @@ func Stop() error {
 		return fmt.Errorf("daemon is not running")
 	}
 
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return fmt.Errorf("could not find process: %w", err)
-	}
-
-	if err := process.Signal(syscall.SIGTERM); err != nil {
+	if err := stopGracefully(pid); err != nil {
 		return fmt.Errorf("failed to stop daemon: %w", err)
 	}
 

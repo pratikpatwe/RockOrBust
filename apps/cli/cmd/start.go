@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
@@ -47,9 +46,7 @@ var startCmd = &cobra.Command{
 		}
 
 		child := exec.Command(self, "--daemon", "--gateway-url", cfg.GatewayURL)
-		child.SysProcAttr = &syscall.SysProcAttr{
-			Setsid: true, // Detach from terminal session (Unix)
-		}
+		child.SysProcAttr = getSysProcAttr()
 		// Redirect child output to /dev/null so it runs silently
 		child.Stdout = nil
 		child.Stderr = nil

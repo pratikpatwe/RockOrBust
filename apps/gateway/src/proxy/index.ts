@@ -10,21 +10,33 @@ import { keyCache } from '../lib/keyCache';
  * The Proxy Engine handles incoming requests from the Playwright plugin.
  * It validates the key and selects an active node for tunneling.
  */
-export function setupProxy() {
-  const proxyPort = process.env.PROXY_PORT || 8888;
-
-  const server = http.createServer((req, res) => {
-    handleProxyRequest(req, res);
-  });
-
-  // Handle HTTPS CONNECT requests
+export function setupProxy(server: http.Server) {
+  // 1. Handle HTTPS CONNECT requests (Always proxy)
   server.on('connect', (req, socket, head) => {
     handleConnectRequest(req, socket as net.Socket, head);
   });
 
-  server.listen(proxyPort, () => {
-    console.log(`Rock or Bust Proxy Engine listening on port ${proxyPort}`);
+  // 2. Handle standard HTTP proxy requests
+  // We intercept the 'request' event to distinguish between local API calls and proxy calls.
+  const originalListeners = server.listeners('request').slice();
+  server.removeAllListeners('request');
+
+  server.on('request', (req, res) => {
+    // Proxy requests have absolute URLs (e.g., http://google.com)
+    // Local API requests have relative paths (e.g., /auth/register)
+    const isProxyRequest = req.url?.startsWith('http://') || req.url?.startsWith('https://');
+
+    if (isProxyRequest) {
+      handleProxyRequest(req, res);
+    } else {
+      // Not a proxy request, pass it to the original listeners (Express)
+      for (const listener of originalListeners) {
+        (listener as any)(req, res);
+      }
+    }
   });
+
+  console.log(`Rock or Bust Proxy Engine multiplexed on main port`);
 }
 
 /**

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -153,7 +154,7 @@ func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage
 			h.sendError(conn, msg.ID, "failed to decode request body")
 			return
 		}
-		bodyReader = io.NopCloser(bytesReader(decoded))
+		bodyReader = bytes.NewReader(decoded)
 	}
 
 	req, err := http.NewRequest(msg.Method, msg.URL, bodyReader)
@@ -292,21 +293,4 @@ func (h *Handler) sendError(conn *websocket.Conn, id, message string) {
 	})
 }
 
-// bytesReader wraps a byte slice as an io.Reader.
-func bytesReader(b []byte) io.Reader {
-	return &bytesReaderImpl{data: b}
-}
 
-type bytesReaderImpl struct {
-	data []byte
-	pos  int
-}
-
-func (r *bytesReaderImpl) Read(p []byte) (int, error) {
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, r.data[r.pos:])
-	r.pos += n
-	return n, nil
-}

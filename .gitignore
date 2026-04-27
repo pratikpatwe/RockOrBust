@@ -1,0 +1,45 @@
+# --- Binaries & Executables ---
+# Project-specific binaries
+apps/cli/rockorbust
+apps/cli/cli
+apps/cli/rock
+
+# Common Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bin/
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+.turbo/
+.vercel/
+
+# --- Environment & Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# --- Logs ---
+logs/
+*.log

@@ -40,13 +40,39 @@ import { chromium } from '@rockorbust/playwright-plugin';
 - **TLS Stealth**: Handled by the RockOrBust Gateway to prevent JA3 fingerprinting.
 - **VPS Fallback**: Optional toggle to continue your automation using the gateway's IP if your node pool is offline.
 
+## Security & Isolation (IMPORTANT)
+
+The `key` is the **only thing** that isolates your residential node pool. 
+
+> [!WARNING]
+> **Never hardcode your key directly in your source code.** If you commit a hardcoded key to a public repository, anyone can hijack your residential IP pool and ruin your automation's reputation.
+
+### Recommended: Use Environment Variables
+The plugin automatically looks for the `ROB_KEY` environment variable. We recommend using a `.env` file (or `.env.local` in Next.js):
+
+```env
+# .env
+ROB_KEY=rob_your_private_key_here
+```
+
+Then, you can launch without passing the key in the code:
+
+```typescript
+const browser = await chromium.launch({
+  rockorbust: {
+    // Key is automatically pulled from process.env.ROB_KEY
+    fallbackToVps: true 
+  }
+});
+```
+
 ## Configuration Options
 
 Pass the `rockorbust` object to any Playwright launch method.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `key` | `string` | **Required** | Your RockOrBust access key (starts with `rob_`). |
+| `key` | `string` | `process.env.ROB_KEY` | Your RockOrBust access key (starts with `rob_`). |
 | `gatewayUrl` | `string` | `https://robapi.buildshot.xyz/` | The URL of the RockOrBust gateway. |
 | `stealth` | `boolean` | `true` | Whether to inject stealth scripts into every context. |
 | `fallbackToVps` | `boolean` | `false` | If `true`, the gateway will use its own IP if no residential nodes are available for your key. |

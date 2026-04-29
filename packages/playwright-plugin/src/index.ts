@@ -22,14 +22,14 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
     }
 
     const { 
-      key, 
+      key = process.env.ROB_KEY, 
       gatewayUrl = DEFAULT_GATEWAY, 
       stealth = true,
       fallbackToVps = false
     } = rockorbust;
 
     if (!key || !key.startsWith('rob_')) {
-      throw new Error('RockOrBust: A valid API key starting with "rob_" is required.');
+      throw new Error('RockOrBust: A valid API key starting with "rob_" is required. Please provide it in the launch options or set the ROB_KEY environment variable.');
     }
 
     // Format proxy username: "rob_key:fallback" or just "rob_key"

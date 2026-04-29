@@ -1,0 +1,31 @@
+{
+  "name": "@rockorbust/playwright-plugin",
+  "version": "0.1.0",
+  "description": "Stealth proxy and fingerprint patching plugin for Playwright",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "playwright",
+    "stealth",
+    "proxy",
+    "residential-proxy",
+    "fingerprinting"
+  ],
+  "author": "BuildShot",
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.42.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "playwright": "^1.x"
+  }
+}

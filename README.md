@@ -1,8 +1,8 @@
 # RockOrBust
 
-**High-performance stealth residential proxy network for Playwright.**
+**Industrial-grade residential proxy infrastructure for browser automation.**
 
-RockOrBust is an industrial-grade infrastructure designed to humanize web automation. By combining a private residential node pool with advanced browser fingerprinting and TLS masking, it allows automated browsers to bypass modern bot detection systems effectively.
+RockOrBust is a high-performance stealth network designed to help automated browsers bypass modern bot detection systems. By combining a private residential node pool with advanced browser fingerprinting spoofing, it allows your automation scripts to appear as legitimate human users.
 
 ---
 
@@ -43,15 +43,15 @@ graph TD
 The project consists of three integrated components:
 
 1.  **[Gateway (apps/gateway)](./apps/gateway)**: A Node.js orchestration layer that manages authentication, node telemetry, and latency-based routing.
-2.  **[Residential CLI (apps/cli)](./apps/cli)**: A standalone Go executable used to contribute residential connections to the proxy pool.
+2.  **[Residential CLI (apps/cli)](./apps/cli)**: A standalone Go executable that contributes residential connections to the proxy pool.
 3.  **[Playwright Plugin (packages/playwright-plugin)](./packages/playwright-plugin)**: A drop-in Playwright wrapper that automates stealth script injection and proxy configuration.
 
 ## Key Capabilities
 
-- **Residential IP Routing**: Seamlessly route traffic through real home connections to avoid datacenter IP reputation flags.
-- **Latency-Based Selection**: The Gateway automatically prioritizes nodes with sub-250ms latency for optimal performance.
-- **Fingerprint Stealth**: Automatically masks `navigator.webdriver`, spoofs hardware concurrency, and mocks Chromium runtime properties.
-- **TLS Fingerprint Masking**: Prevents JA3 detection by re-negotiating TLS handshakes at the Gateway level.
+- **Residential IP Routing**: Route traffic through real home connections to avoid datacenter IP reputation flags.
+- **Latency-Based Selection**: The Gateway automatically prioritizes nodes with optimal response times for high-performance scraping.
+- **Browser Fingerprint Spoofing**: Automatically masks `navigator.webdriver`, spoofs hardware concurrency, and mocks Chromium runtime properties to hide automation signals.
+- **Transparent Integration**: Maintain your existing Playwright logic while gaining advanced stealth capabilities.
 - **Resilient Fallback**: Optional VPS failover ensures connectivity even when the residential pool is undersized.
 
 ## Getting Started
@@ -68,16 +68,16 @@ No account registration is required. Simply download the CLI and use the followi
 | `rockorbust key set <key>` | Manually links your device to an existing `rob_` key. |
 | `rockorbust start` | Launches the residential node as a background daemon. |
 | `rockorbust status` | Displays the current connection health and process ID. |
-| `rockorbust stop` | Gracefully disconnects and terminates the background daemon. |
+| `rockorbust stop` | Gracefully terminates the background daemon. |
 
 ```bash
-# Example: Automatic Setup
+# Example: Quick Start
 rockorbust key generate
 rockorbust start
 ```
 
 ### 3. Integrate with Playwright
-Install the plugin in your Node.js project:
+Install the plugin in your project:
 ```bash
 npm install @rockorbust/playwright-plugin
 ```

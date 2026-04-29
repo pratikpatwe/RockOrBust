@@ -15,13 +15,13 @@ const defaultGateway = "https://robapi.buildshot.xyz"
 
 var keyCmd = &cobra.Command{
 	Use:   "key",
-	Short: "Manage your RockOrBust node key",
+	Short: "Manage your residential access key",
 }
 
 var keyGenerateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Generate a new rob_ key automatically",
-	Long:  `Connects to the RockOrBust gateway to generate a new unique residential access key and saves it locally.`,
+	Short: "Get a new rob_ key automatically",
+	Long:  `Securely requests a new unique access key from the gateway and saves it to your local configuration.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("🛰️ Requesting new key from gateway...")
 
@@ -61,8 +61,8 @@ var keyGenerateCmd = &cobra.Command{
 
 var keySetCmd = &cobra.Command{
 	Use:   "set <key>",
-	Short: "Save your rob_ key to the local config file",
-	Long:  `Saves the provided rob_ key to the OS-appropriate config file. The key is used to authenticate this node with the gateway.`,
+	Short: "Link your device with an existing key",
+	Long:  `Saves a provided rob_ key to your local config. Use this if you already have a key from a teammate or the dashboard.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		key := strings.TrimSpace(args[0])
@@ -77,7 +77,7 @@ var keySetCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("✓ Key saved successfully.\n")
+		fmt.Printf("✓ Key linked successfully.\n")
 	},
 }
 

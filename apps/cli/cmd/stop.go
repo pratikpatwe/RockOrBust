@@ -9,7 +9,7 @@ import (
 
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stop the running RockOrBust node daemon",
+	Short: "Stop the running residential node daemon",
 	Long:  `Reads the PID file, sends a signal to the daemon process, and removes the PID file.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := daemon.Stop(); err != nil {

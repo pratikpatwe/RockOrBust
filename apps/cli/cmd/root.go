@@ -9,12 +9,14 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "rockorbust",
-	Short: "RockOrBust — stealth proxy network for Playwright",
-	Long: `RockOrBust routes Playwright traffic through residential nodes
-to bypass bot detection, TLS fingerprinting, and IP reputation checks.
+	Short: "RockOrBust 🎸 — The ultimate stealth residential proxy network",
+	Long: `RockOrBust is a high-performance stealth proxy network that humanizes
+automation by routing traffic through real residential connections.
 
-Use 'rockorbust key set <key>' to configure your node key,
-then 'rockorbust start' to join the network.`,
+Quick Start:
+  1. rockorbust key generate  - Get your unique access key
+  2. rockorbust start         - Join the residential network
+  3. rockorbust status        - Check your connection health`,
 }
 
 // Execute is the entry point called from main.go

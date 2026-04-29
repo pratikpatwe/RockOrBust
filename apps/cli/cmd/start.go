@@ -12,8 +12,8 @@ import (
 
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start the RockOrBust node daemon in the background",
-	Long:  `Launches the node daemon as a background process. The terminal returns immediately. Use 'rockorbust status' to check if it is running.`,
+	Short: "Start the residential node daemon",
+	Long:  `Launches the background process that connects your residential IP to the proxy pool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Check if already running
 		pid, _ := daemon.ReadPID()

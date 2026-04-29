@@ -1,15 +1,16 @@
 # @rockorbust/playwright-plugin
 
-**The transparent stealth layer for Playwright automation.**
+**The transparent stealth layer for all Playwright browsers.**
 
-This package provides a drop-in replacement for the Playwright `chromium` object. it automatically handles residential proxy routing, TLS fingerprint masking, and advanced browser fingerprint spoofing.
+This package provides a drop-in stealth wrapper for Playwright's `chromium`, `firefox`, and `webkit` objects. It automatically handles residential proxy routing and advanced browser-specific fingerprint spoofing.
 
 ## Features
 
+- **Multi-Browser Support**: Drop-in replacement for `chromium`, `firefox`, and `webkit`.
 - **Transparent Proxying**: Automatically routes all context traffic through the RockOrBust residential gateway.
-- **Fingerprint Deception**: Masks `navigator.webdriver`, spoofs `WebGL`/`Canvas` fingerprints, and mocks hardware concurrency.
-- **TLS Masking**: Prevents JA3/JA4 detection by offloading TLS handshakes to the gateway.
+- **Fingerprint Deception**: Context-aware masking of `navigator.webdriver`, `WebGL`/`Canvas` fingerprints, and hardware signals.
 - **Zero Configuration**: Automatically picks up your `ROB_KEY` from environment variables.
+- **Drop-in Compatibility**: Works seamlessly with your existing Playwright scripts—no logic changes required.
 
 ## Installation
 
@@ -24,10 +25,12 @@ Simply replace your `playwright` import with `@rockorbust/playwright-plugin`.
 
 ```typescript
 import { chromium } from '@rockorbust/playwright-plugin';
+// Use standard playwright types if needed
+import type { Browser, Page } from 'playwright';
 
 async function main() {
   // The plugin automatically injects stealth scripts and proxy settings
-  const browser = await chromium.launch({
+  const browser: Browser = await chromium.launch({
     rockorbust: {
       key: 'rob_your_key_here', // Or use process.env.ROB_KEY
       fallbackToVps: true       // Optional: failover to VPS IP if no residential nodes are active
@@ -35,7 +38,7 @@ async function main() {
   });
 
   const context = await browser.newContext();
-  const page = await context.newPage();
+  const page: Page = await context.newPage();
 
   await page.goto('https://bot.sannysoft.com');
   // Observe your residential IP and "Green" stealth results
@@ -53,14 +56,14 @@ The `chromium.launch` method accepts a `rockorbust` configuration object:
 | `key` | `string` | Your RockOrBust access key (required if `ROB_KEY` env var is missing). |
 | `gatewayUrl` | `string` | Custom gateway URL (defaults to `https://robapi.buildshot.xyz`). |
 | `fallbackToVps` | `boolean` | If `true`, traffic routes through the Gateway IP if no residential nodes are available. |
+| `stealth` | `boolean` | Enable/disable automatic stealth script injection (defaults to `true`). |
 
 ## Why RockOrBust?
 
 Modern anti-bot solutions (Cloudflare, Akamai, Datadome) use a combination of IP reputation and browser fingerprinting to block automation. 
 
-1.  **IP Reputation**: We solve this by routing through real home connections (Residential Nodes).
-2.  **Fingerprinting**: We solve this by injecting custom stealth scripts before the first line of any page code executes.
-3.  **TLS Fingerprinting**: We solve this by ensuring the TLS handshake is performed by a high-level Go/Node client on the Gateway, not the automated browser.
+1.  **IP Reputation**: We solve this by routing through real home connections (Residential Nodes) rather than flagged datacenter IPs.
+2.  **Fingerprinting**: We solve this by injecting custom stealth scripts before the first line of any page code executes, masking common automation signals.
 
 ---
 

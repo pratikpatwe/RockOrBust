@@ -93,9 +93,24 @@ export function setupWebSocket(server: Server) {
       console.error(`WebSocket error for node ${hostname}:`, err);
     });
 
-    // Message handling for tunneling responses
+    // Message handling for tunneling responses and telemetry
     ws.on('message', (data) => {
-      tunnelManager.handleNodeMessage(ws, data.toString());
+      const messageStr = data.toString();
+      
+      // Check if it's a JSON message (telemetry) or raw tunneling data
+      if (messageStr.startsWith('{')) {
+        try {
+          const msg = JSON.parse(messageStr);
+          if (msg.type === 'latency' && typeof msg.ms === 'number') {
+            nodeRegistry.updateLatency(keyId, ws, msg.ms);
+            return; // Handled
+          }
+        } catch (e) {
+          // Not valid JSON or not a telemetry message, pass to tunnelManager
+        }
+      }
+
+      tunnelManager.handleNodeMessage(ws, messageStr);
     });
   });
 

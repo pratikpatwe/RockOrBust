@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"time"
@@ -140,6 +141,9 @@ func (c *Client) readLoop(conn *websocket.Conn) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()
 
+	// Start the latency reporter to send speed metrics to the gateway
+	go c.reportLatency(conn)
+
 	done := make(chan struct{})
 
 	// Goroutine to send pings
@@ -191,4 +195,30 @@ func SendMessage(conn *websocket.Conn, msg any) error {
 		return fmt.Errorf("failed to serialize message: %w", err)
 	}
 	return conn.WriteMessage(websocket.TextMessage, data)
+}
+
+// reportLatency periodically measures latency and sends it to the gateway.
+func (c *Client) reportLatency(conn *websocket.Conn) {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			start := time.Now()
+			// Use a standard target for latency measurement (Cloudflare DNS)
+			dialer := net.Dialer{Timeout: 5 * time.Second}
+			conn_test, err := dialer.Dial("tcp", "1.1.1.1:443")
+			if err == nil {
+				latency := time.Since(start).Milliseconds()
+				conn_test.Close()
+				SendMessage(conn, map[string]interface{}{
+					"type": "latency",
+					"ms":   latency,
+				})
+			}
+		case <-c.quit:
+			return
+		}
+	}
 }

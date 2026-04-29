@@ -47,11 +47,17 @@ rockorbust status
 rockorbust stop
 ```
 
-## Security
+## Security & Troubleshooting
+### Unauthorized Errors
+If you see an "Unauthorized" or "Invalid Key" error in your logs, check the following:
+- Ensure the key starts with `rob_`.
+- Verify the key is active in your dashboard.
+- Check that your firewall isn't blocking outgoing WebSocket connections.
 
+### Privacy
 - **Encryption**: All communication with the Gateway is handled via secure WebSockets.
 - **Isolation**: Your node only accepts traffic directed to your specific API Key.
-- **Privacy**: The Gateway and CLI only see encrypted traffic (for HTTPS requests).
+- **Zero-Knowledge**: The Gateway and CLI only see encrypted traffic (for HTTPS requests).
 
 ---
 

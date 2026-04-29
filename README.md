@@ -6,7 +6,35 @@ RockOrBust is an industrial-grade infrastructure designed to humanize web automa
 
 ---
 
-<!-- [VISUAL PLACEHOLDER: PROJECT ARCHITECTURE DIAGRAM] -->
+```mermaid
+graph TD
+    subgraph "Developer Environment"
+        A[Playwright Script] -- "@rockorbust/plugin" --> B[Automated Browser]
+    end
+
+    subgraph "RockOrBust Gateway"
+        B -- "Proxy Request (HTTP CONNECT)" --> C[Orchestration Layer]
+        C -- "Authentication & Rate Limiting" --> DB[(Supabase)]
+        C -- "Latency-Based Routing" --> D[Residential Pool]
+    end
+
+    subgraph "Residential Node (Go CLI)"
+        D -- "Secure WebSocket Tunnel" --> E[Residential Device]
+        E -- "Final Request (Home IP)" --> F[Target Website]
+    end
+
+    G[New User] -- "key generate" --> C
+```
+
+---
+
+## 🔌 System Interfaces
+
+| Interface | Type | Usage |
+| :--- | :--- | :--- |
+| **Proxy Gateway** | `HTTP CONNECT` | Entry point for Playwright scripts and browser traffic. |
+| **Auth API** | `REST (JSON)` | Handles key generation and validation via `/auth/register`. |
+| **Node Tunnel** | `WebSocket` | Secure persistent tunnel for Residential CLI nodes. |
 
 ---
 

@@ -10,6 +10,14 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 - **WebSocket Tunneling**: Multiplexes incoming HTTP(S) proxy traffic over persistent WebSocket connections to residential nodes.
 - **Security**: Implements IP-based rate limiting for key generation and edge protection for the residential pool.
 
+## API & Interface Reference
+
+| Endpoint | Method | Protocol | Description |
+| :--- | :--- | :--- | :--- |
+| `/auth/register` | `POST` | HTTP | Generates a new unique `rob_` key (Rate limited: 1/hr). |
+| `/ws` | `Upgrade` | WebSocket | Primary tunnel entry for Residential CLI nodes. |
+| `*` (Root) | `CONNECT` | Proxy | Standard HTTP Proxy entry point for Playwright traffic. |
+
 ## Deployment
 
 ### Prerequisites

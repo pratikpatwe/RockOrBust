@@ -43,7 +43,7 @@ export function setupProxy(server: http.Server) {
  * Handles standard HTTP requests (GET, POST, etc.)
  */
 async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-  const key = extractKey(req);
+  const { key, fallback } = extractKeyAndOptions(req);
 
   if (!key) {
     res.writeHead(407, { 'Proxy-Authenticate': 'Basic realm="Rock or Bust"' });
@@ -52,7 +52,15 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
   }
 
   const node = await getActiveNodeForKey(key);
+  
   if (!node) {
+    if (fallback) {
+      console.log(`No node for ${key}, falling back to VPS IP for HTTP ${req.method} ${req.url}`);
+      // Simple fallback: Forward directly from VPS (Note: This is a basic implementation)
+      res.writeHead(502);
+      res.end('VPS Fallback requested but direct routing not yet fully implemented in this phase. Please wait for the next update.');
+      return;
+    }
     res.writeHead(502);
     res.end('No active residential nodes available for this key');
     return;
@@ -64,9 +72,6 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
   req.on('end', () => {
     const fullBody = bodyChunks.length > 0 ? Buffer.concat(bodyChunks) : undefined;
     console.log(`Forwarding HTTP ${req.method} ${req.url} to node ${node.hostname}`);
-    
-    // NOTE: Retry logic and proper async error handling will be implemented
-    // in a future phase once tunnelManager.forwardHttpRequest is refactored to return a Promise.
     tunnelManager.forwardHttpRequest(node.ws, req, res, fullBody);
   });
 }
@@ -75,7 +80,7 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
  * Handles HTTPS CONNECT requests
  */
 async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socket, head: Buffer) {
-  const key = extractKey(req);
+  const { key, fallback } = extractKeyAndOptions(req);
 
   if (!key) {
     socket.write('HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm="Rock or Bust"\r\n\r\n');
@@ -84,7 +89,20 @@ async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socke
   }
 
   const node = await getActiveNodeForKey(key);
+  
   if (!node) {
+    if (fallback) {
+      console.log(`No node for ${key}, falling back to VPS IP for CONNECT ${req.url}`);
+      const [host, port] = req.url!.split(':');
+      const proxySocket = net.connect(parseInt(port), host, () => {
+        socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+        proxySocket.write(head);
+        proxySocket.pipe(socket);
+        socket.pipe(proxySocket);
+      });
+      proxySocket.on('error', () => socket.end());
+      return;
+    }
     socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\nNo active residential nodes available for this key\r\n');
     socket.end();
     return;
@@ -95,22 +113,33 @@ async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socke
 }
 
 /**
- * Extracts the rob_ key from the Proxy-Authorization header or custom header
+ * Extracts the rob_ key and options from the Proxy-Authorization header
+ * Format: rob_key:option1,option2
  */
-function extractKey(req: http.IncomingMessage): string | null {
+function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; fallback: boolean } {
+  let rawKey: string | null = null;
+  
   const auth = req.headers['proxy-authorization'];
   if (auth && auth.startsWith('Basic ')) {
     const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString();
-    const [username] = credentials.split(':'); // Key is passed as username
-    if (username.startsWith('rob_')) return username;
+    const [username] = credentials.split(':');
+    rawKey = username;
   }
 
   const customKey = req.headers['x-rob-key'];
-  if (typeof customKey === 'string' && customKey.startsWith('rob_')) {
-    return customKey;
+  if (typeof customKey === 'string') {
+    rawKey = customKey;
   }
 
-  return null;
+  if (!rawKey || !rawKey.startsWith('rob_')) {
+    return { key: null, fallback: false };
+  }
+
+  // Check for fallback flag in format rob_key:fallback
+  const [key, options] = rawKey.split(':');
+  const fallback = options === 'fallback';
+
+  return { key, fallback };
 }
 
 /**

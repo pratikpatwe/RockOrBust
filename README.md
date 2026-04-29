@@ -1,252 +1,64 @@
-# RockOrBust
+# RockOrBust 🎸
 
-**Stealth proxy network for Playwright. Patch browser fingerprints, rotate residential IPs, and bypass TLS detection without touching your existing automation code.**
+**The ultimate stealth residential proxy network for Playwright.**
 
-[![License](https://img.shields.io/badge/License-MIT-white.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://img.shields.io/badge/npm-coming%20soon-white)](https://www.npmjs.com/package/@rockorbust/playwright-plugin)
-[![Go](https://img.shields.io/badge/Go-1.21-white.svg)](https://golang.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-white.svg)](CONTRIBUTING.md)
+RockOrBust is a three-tier infrastructure designed to make web automation indistinguishable from a real human. It combines a private residential node pool with advanced browser fingerprinting and TLS masking.
 
 ---
 
-## Overview
-
-Playwright automation is detectable by default. Anti-bot systems like Cloudflare, DataDome, and Akamai identify automated browsers through three vectors: browser fingerprints exposed via JavaScript properties, TLS handshake signatures unique to Chromium, and datacenter IP reputation.
-
-Existing solutions such as `playwright-extra` and `puppeteer-extra-plugin-stealth` address browser fingerprinting only, and have not been actively maintained since 2023. None of them solve TLS-level detection or provide integrated residential IP routing.
-
-RockOrBust solves all three layers in a single drop-in package, built around a key-isolated residential proxy network that you control.
+<!-- [VISUAL PLACEHOLDER: PROJECT ARCHITECTURE DIAGRAM] -->
+<!-- This is the best place for your high-level system diagram showing the flow between Developer, Gateway, and Node -->
 
 ---
 
-## How It Works
+## 🏗️ The Three Pillars
 
-```
-Your Playwright Script
-        │
-        ▼
-@rockorbust/playwright-plugin
-  ├── Patches browser fingerprints via addInitScript
-  └── Routes requests through your key-isolated gateway
-        │
-        ▼
-RockOrBust Gateway (self-hosted)
-  ├── Validates your key
-  ├── Selects fastest available node from your pool
-  └── Forwards request through that node's residential IP
-        │
-        ▼
-rockorbust CLI (running on contributor devices)
-  └── Makes the actual request using its local residential IP
-        │
-        ▼
-Target Website
-  └── Sees a real residential IP. Thinks it's a human.
+The project is divided into three core components:
+
+1.  **[The Gateway (apps/gateway)](./apps/gateway)**: The brain. It manages authentication, node health, and speed-based routing.
+2.  **[The Node CLI (apps/cli)](./apps/cli)**: The muscle. A lightweight Go executable that allows anyone to contribute their residential IP to the pool.
+3.  **[The Playwright Plugin (packages/playwright-plugin)](./packages/playwright-plugin)**: The interface. A drop-in replacement for Playwright that handles stealth injection and proxy routing.
+
+## 🚀 Key Features
+
+- **Residential IP Rotation**: Route traffic through real home connections, not flagged datacenters.
+- **Smart Speed Filtering**: The Gateway automatically picks the fastest available node (latency-based).
+- **Stealth Fingerprinting**: Automatically patches `navigator.webdriver`, spoofs `canvas`/`webgl`, and mocks the Chrome environment.
+- **TLS Fingerprint Masking**: Prevents JA3 detection by re-handshaking at the Gateway level.
+- **VPS Fallback**: Optional toggle to use the Gateway's own IP if your residential pool is offline.
+
+## 🛠️ Quick Start
+
+### 1. Host the Gateway
+Deploy the gateway to a VPS or use the hosted version at `https://robapi.buildshot.xyz/`.
+
+### 2. Start a Node
+Download the CLI for your OS, set your key, and start contributing:
+```bash
+rockorbust key set rob_your_key
+rockorbust start
 ```
 
----
-
-## What Gets Bypassed
-
-| Detection Layer | Method | Status |
-|---|---|---|
-| Browser Fingerprinting | `navigator.webdriver`, plugins, canvas, WebGL, screen spoofing via `addInitScript` | Handled |
-| TLS Fingerprinting | JA3 signature obfuscation via residential proxy re-handshake | Handled |
-| IP Reputation | Key-isolated residential IP rotation through contributor node pool | Handled |
-
----
-
-## Packages
-
-This is a monorepo containing three packages:
-
-| Package | Language | Description |
-|---|---|---|
-| `packages/playwright-plugin` | TypeScript | Drop-in NPM package for Playwright |
-| `apps/gateway` | TypeScript / Node.js | Central routing server, self-hosted on your VPS |
-| `apps/cli` | Go | Cross-platform daemon for contributing your IP as a node |
-
----
-
-## Quick Start
-
-### 1. Install the Playwright plugin
-
+### 3. Use the Plugin
+Install the plugin in your Playwright project:
 ```bash
 npm install @rockorbust/playwright-plugin
 ```
 
-### 2. Two-line integration
-
 ```typescript
-// Before
-import { chromium } from 'playwright'
+import { chromium } from '@rockorbust/playwright-plugin';
 
-// After
-import { chromium } from '@rockorbust/playwright-plugin'
-```
-
-```typescript
 const browser = await chromium.launch({
-  rockorbust: {
-    key: 'rob_your_key_here'
-  }
-})
-
-// Everything else in your codebase stays exactly the same
-const page = await browser.newPage()
-await page.goto('https://example.com')
+  rockorbust: { key: process.env.ROB_KEY }
+});
 ```
 
-### 3. Get a key
+## 📖 Component Documentation
 
-Run the gateway locally or point to your hosted instance, then register:
-
-```bash
-curl -X POST https://your-gateway.com/register
-# Returns: { "key": "rob_a3f8b2c9d4e1f6a7..." }
-```
+- **[Gateway Setup & API](./apps/gateway/README.md)**
+- **[CLI User Manual](./apps/cli/README.md)**
+- **[Playwright Plugin Guide](./packages/playwright-plugin/README.md)**
 
 ---
-
-## Contributing a Node
-
-Anyone can contribute their device's residential IP to a key-isolated pool. This is transparent — your device only routes traffic for keys you have authorized.
-
-### Install the CLI
-
-**macOS / Linux**
-```bash
-curl -sSL https://rockorbust.dev/install.sh | sh
-```
-
-**Windows**
-```powershell
-irm https://rockorbust.dev/install.ps1 | iex
-```
-
-**Go install**
-```bash
-go install github.com/pratikpatwe/RockOrBust/apps/cli@latest
-```
-
-### CLI Commands
-
-```bash
-# Save your key (run once)
-rockorbust key set rob_your_key_here
-
-# Start the node daemon (runs in background)
-rockorbust start
-
-# Check node status
-rockorbust status
-
-# Stop the node daemon
-rockorbust stop
-```
-
-Your normal internet is unaffected. The daemon only routes traffic authorized by your specific key.
-
----
-
-## Self-Hosting the Gateway
-
-The gateway is the central server that connects your Playwright plugin to your node pool. You host it on your own VPS.
-
-```bash
-git clone https://github.com/pratikpatwe/RockOrBust
-cd RockOrBust/apps/gateway
-cp .env.example .env
-# Fill in your Supabase credentials in .env
-npm install
-npm run start
-```
-
-**Environment variables** (see `.env.example`):
-
-```env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-PORT=8080
-```
-
-> [!NOTE]
-> The `SUPABASE_SERVICE_ROLE_KEY` is required because the gateway needs to bypass Row Level Security (RLS) to manage keys and nodes directly across different users.
-
----
-
-## Repository Structure
-
-```
-RockOrBust/
-├── packages/
-│   └── playwright-plugin/     # @rockorbust/playwright-plugin (TypeScript, NPM)
-├── apps/
-│   ├── gateway/               # Gateway server (TypeScript, Node.js, Supabase)
-│   └── cli/                   # Node daemon (Go, cross-platform)
-├── docs/                      # Documentation
-└── README.md
-```
-
----
-
-## Key System
-
-Keys are generated server-side using cryptographically random bytes. Users never choose their own keys. Each key defines an isolated network:
-
-- Playwright plugin with key `X` only routes through nodes registered with key `X`
-- No cross-key traffic is possible
-- Keys can be revoked at any time via the gateway
-
-This means you can share a key with your team and build a private residential proxy pool that only your automation uses.
-
----
-
-## Roadmap
-
-- [x] Playwright plugin with fingerprint patching
-- [x] Go CLI node daemon (macOS, Linux, Windows)
-- [x] Key-isolated gateway with Supabase
-- [ ] Node health scoring and automatic rotation
-- [ ] Android node client
-- [ ] Python SDK (`pip install rockorbust`)
-- [ ] Web dashboard for key and node management
-
----
-
-## Contributing
-
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-
-```bash
-git clone https://github.com/pratikpatwe/RockOrBust
-cd RockOrBust
-pnpm install
-```
-
-Run the plugin in development:
-```bash
-cd packages/playwright-plugin
-pnpm dev
-```
-
-Run the gateway in development:
-```bash
-cd apps/gateway
-cp .env.example .env
-pnpm dev
-```
-
----
-
-## Why "Rock or Bust"
-
-Named after the AC/DC album. You either break through or you don't. There is no middle ground in bot detection.
-
----
-
-## License
 
 MIT © [BuildShot](https://buildshot.xyz)

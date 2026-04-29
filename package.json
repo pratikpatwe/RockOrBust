@@ -7,8 +7,11 @@
   ],
   "scripts": {
     "gateway:dev": "npm run dev -w gateway",
+    "gateway:build": "npm run build -w gateway",
     "plugin:build": "npm run build -w @rockorbust/playwright-plugin",
-    "plugin:dev": "npm run dev -w @rockorbust/playwright-plugin"
+    "plugin:dev": "npm run dev -w @rockorbust/playwright-plugin",
+    "cli:build": "cd apps/cli && go build -o ../../bin/rockorbust main.go",
+    "build:all": "npm run gateway:build && npm run plugin:build && npm run cli:build"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

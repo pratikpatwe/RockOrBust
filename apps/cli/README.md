@@ -1,30 +1,58 @@
-# RockOrBust CLI
+# RockOrBust CLI 🚀
 
-The Go CLI node client for the RockOrBust stealth proxy network.
+The RockOrBust CLI is a lightweight, cross-platform tool that allows you to contribute your residential IP to your private proxy pool.
+
+## Features
+
+- **Low Footprint**: Written in Go, uses minimal CPU and RAM.
+- **Easy Setup**: Single binary, no dependencies required.
+- **Speed Reporting**: Automatically measures and reports local latency to the Gateway for optimal routing.
+- **Background Mode**: Runs as a background daemon.
 
 ## Installation
 
+Download the binary for your operating system from the [Releases](https://github.com/pratikpatwe/RockOrBust/releases) page.
+
+### Linux / macOS
 ```bash
-go build -o rockorbust .
+chmod +x rockorbust
+sudo mv rockorbust /usr/local/bin/
 ```
 
-## Commands
+### Windows
+Just download `rockorbust.exe` and add it to your PATH.
 
-| Command | Description |
-|---|---|
-| `rockorbust key set <key>` | Save your `rob_` key to local config |
-| `rockorbust start` | Start the node daemon in the background |
-| `rockorbust status` | Check if the daemon is running |
-| `rockorbust stop` | Stop the running daemon |
+## Usage
 
-## Configuration
+### 1. Set your API Key
+Link your device to your RockOrBust pool:
+```bash
+rockorbust key set rob_your_private_key
+```
 
-Config is stored at:
-- **Linux/Mac**: `~/.config/rockorbust/config.json`
-- **Windows**: `%APPDATA%\rockorbust\config.json`
+### 2. Start the Node
+Start contributing your residential connection:
+```bash
+rockorbust start
+```
 
-## PID File
+### 3. Check Status
+See if your node is online and view your current speed score:
+```bash
+rockorbust status
+```
 
-The daemon PID is stored at:
-- **Linux/Mac**: `/tmp/rockorbust.pid`
-- **Windows**: `%TEMP%\rockorbust.pid`
+### 4. Stop the Node
+```bash
+rockorbust stop
+```
+
+## Security
+
+- **Encryption**: All communication with the Gateway is handled via secure WebSockets.
+- **Isolation**: Your node only accepts traffic directed to your specific API Key.
+- **Privacy**: The Gateway and CLI only see encrypted traffic (for HTTPS requests).
+
+---
+
+MIT © [BuildShot](https://buildshot.xyz)

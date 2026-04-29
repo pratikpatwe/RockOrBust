@@ -1,16 +1,62 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
+// Default gateway for key generation
+const defaultGateway = "https://robapi.buildshot.xyz"
+
 var keyCmd = &cobra.Command{
 	Use:   "key",
 	Short: "Manage your RockOrBust node key",
+}
+
+var keyGenerateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate a new rob_ key automatically",
+	Long:  `Connects to the RockOrBust gateway to generate a new unique residential access key and saves it locally.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("🛰️ Requesting new key from gateway...")
+
+		resp, err := http.Post(defaultGateway+"/auth/register", "application/json", nil)
+		if err != nil {
+			fmt.Printf("Error: could not connect to gateway: %v\n", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusCreated {
+			var errResp struct {
+				Error string `json:"error"`
+			}
+			json.NewDecoder(resp.Body).Decode(&errResp)
+			fmt.Printf("Error: gateway returned %d - %s\n", resp.StatusCode, errResp.Error)
+			return
+		}
+
+		var successResp struct {
+			Key string `json:"key"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&successResp); err != nil {
+			fmt.Printf("Error: failed to parse gateway response: %v\n", err)
+			return
+		}
+
+		if err := config.SetKey(successResp.Key); err != nil {
+			fmt.Printf("Error: failed to save new key: %v\n", err)
+			return
+		}
+
+		fmt.Printf("✨ New key generated and saved: %s\n", successResp.Key)
+		fmt.Println("🚀 You can now run 'rockorbust start' to begin contributing.")
+	},
 }
 
 var keySetCmd = &cobra.Command{
@@ -37,5 +83,6 @@ var keySetCmd = &cobra.Command{
 
 func init() {
 	keyCmd.AddCommand(keySetCmd)
+	keyCmd.AddCommand(keyGenerateCmd)
 	rootCmd.AddCommand(keyCmd)
 }

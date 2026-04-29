@@ -1,91 +1,66 @@
 # @rockorbust/playwright-plugin
 
-**Stealth proxy and fingerprint patching for Playwright.**
+**The transparent stealth layer for Playwright automation.**
 
-Automatically route your Playwright traffic through the RockOrBust residential node pool and bypass advanced bot detection with built-in stealth scripts.
+This package provides a drop-in replacement for the Playwright `chromium` object. it automatically handles residential proxy routing, TLS fingerprint masking, and advanced browser fingerprint spoofing.
+
+## Features
+
+- **Transparent Proxying**: Automatically routes all context traffic through the RockOrBust residential gateway.
+- **Fingerprint Deception**: Masks `navigator.webdriver`, spoofs `WebGL`/`Canvas` fingerprints, and mocks hardware concurrency.
+- **TLS Masking**: Prevents JA3/JA4 detection by offloading TLS handshakes to the gateway.
+- **Zero Configuration**: Automatically picks up your `ROB_KEY` from environment variables.
 
 ## Installation
 
 ```bash
-npm install @rockorbust/playwright-plugin
+npm install @rockorbust/playwright-plugin playwright
 ```
 
-## Quick Start
+## Usage
 
-The plugin is a drop-in replacement for Playwright's browser objects (`chromium`, `firefox`, `webkit`).
+### Basic Setup
+Simply replace your `playwright` import with `@rockorbust/playwright-plugin`.
 
 ```typescript
 import { chromium } from '@rockorbust/playwright-plugin';
 
-(async () => {
+async function main() {
+  // The plugin automatically injects stealth scripts and proxy settings
   const browser = await chromium.launch({
     rockorbust: {
-      key: 'rob_your_key_here',
-      fallbackToVps: true // If no residential nodes are available, use the VPS IP
+      key: 'rob_your_key_here', // Or use process.env.ROB_KEY
+      fallbackToVps: true       // Optional: failover to VPS IP if no residential nodes are active
     }
   });
 
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto('https://example.com');
-  await browser.close();
-})();
-```
+  await page.goto('https://bot.sannysoft.com');
+  // Observe your residential IP and "Green" stealth results
+}
 
-## Features
-
-- **Residential IP Rotation**: Every request is routed through a peer-to-peer residential node pool.
-- **Fingerprint Patching**: Automatically masks `navigator.webdriver`, spoofs `canvas`/`webgl`, and mocks the Chrome environment.
-- **TLS Stealth**: Handled by the RockOrBust Gateway to prevent JA3 fingerprinting.
-- **VPS Fallback**: Optional toggle to continue your automation using the gateway's IP if your node pool is offline.
-
-## Security & Isolation (IMPORTANT)
-
-The `key` is the **only thing** that isolates your residential node pool. 
-
-> [!WARNING]
-> **Never hardcode your key directly in your source code.** If you commit a hardcoded key to a public repository, anyone can hijack your residential IP pool and ruin your automation's reputation.
-
-### Recommended: Use Environment Variables
-The plugin automatically looks for the `ROB_KEY` environment variable. We recommend using a `.env` file (or `.env.local` in Next.js):
-
-```env
-# .env
-ROB_KEY=rob_your_private_key_here
-```
-
-Then, you can launch without passing the key in the code:
-
-```typescript
-const browser = await chromium.launch({
-  rockorbust: {
-    // Key is automatically pulled from process.env.ROB_KEY
-    fallbackToVps: true 
-  }
-});
+main();
 ```
 
 ## Configuration Options
 
-Pass the `rockorbust` object to any Playwright launch method.
+The `chromium.launch` method accepts a `rockorbust` configuration object:
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `key` | `string` | `process.env.ROB_KEY` | Your RockOrBust access key (starts with `rob_`). |
-| `gatewayUrl` | `string` | `https://robapi.buildshot.xyz/` | The URL of the RockOrBust gateway. |
-| `stealth` | `boolean` | `true` | Whether to inject stealth scripts into every context. |
-| `fallbackToVps` | `boolean` | `false` | If `true`, the gateway will use its own IP if no residential nodes are available for your key. |
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `key` | `string` | Your RockOrBust access key (required if `ROB_KEY` env var is missing). |
+| `gatewayUrl` | `string` | Custom gateway URL (defaults to `https://robapi.buildshot.xyz`). |
+| `fallbackToVps` | `boolean` | If `true`, traffic routes through the Gateway IP if no residential nodes are available. |
 
-## How it Works
+## Why RockOrBust?
 
-1. **Proxy Injection**: The plugin configures Playwright's internal proxy settings to point to the RockOrBust Gateway.
-2. **Key Isolation**: Your traffic is isolated at the gateway level using your unique key.
-3. **Stealth Injection**: On every `newContext()`, the plugin automatically calls `addInitScript` with a robust suite of anti-detection patches.
+Modern anti-bot solutions (Cloudflare, Akamai, Datadome) use a combination of IP reputation and browser fingerprinting to block automation. 
 
-## Why use this?
-
-Existing solutions like `playwright-extra` are often unmaintained and only handle JavaScript-level detection. RockOrBust handles all three layers: **IP Reputation**, **TLS Fingerprinting**, and **Browser Fingerprinting**.
+1.  **IP Reputation**: We solve this by routing through real home connections (Residential Nodes).
+2.  **Fingerprinting**: We solve this by injecting custom stealth scripts before the first line of any page code executes.
+3.  **TLS Fingerprinting**: We solve this by ensuring the TLS handshake is performed by a high-level Go/Node client on the Gateway, not the automated browser.
 
 ---
 

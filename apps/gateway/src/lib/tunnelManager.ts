@@ -31,6 +31,23 @@ class TunnelManager {
       ...cleanHeaders
     } = req.headers;
 
+    // Normalize the 'host' header. When sent through a proxy, the host header
+    // can arrive as an absolute URL (e.g., "http://google.com:80"). A direct
+    // browser connection always sends just the hostname (e.g., "google.com").
+    // Forwarding the absolute format is a detectable proxy signal.
+    if (cleanHeaders.host) {
+      try {
+        const hostUrl = cleanHeaders.host.startsWith('http')
+          ? new URL(cleanHeaders.host)
+          : new URL(`http://${cleanHeaders.host}`);
+        // Reconstruct: use hostname only, append port only if non-standard
+        const isDefaultPort = !hostUrl.port || hostUrl.port === '80' || hostUrl.port === '443';
+        cleanHeaders.host = isDefaultPort ? hostUrl.hostname : `${hostUrl.hostname}:${hostUrl.port}`;
+      } catch {
+        // If parsing fails, leave the host header as-is
+      }
+    }
+
     const payload = {
       type: 'HTTP_REQUEST',
       id: requestId,

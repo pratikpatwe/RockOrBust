@@ -1,35 +1,35 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 
-var startCmd = &cobra.Command{
-	Use:   "start",
+var rockCmd = &cobra.Command{
+	Use:   "rock",
 	Short: "Start the residential node daemon",
 	Long:  `Launches the background process that connects your residential IP to the proxy pool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Check if already running
 		pid, _ := daemon.ReadPID()
 		if daemon.IsRunning(pid) {
-			fmt.Printf("Daemon is already running (PID: %d)\n", pid)
+			ui.Warning("Daemon is already rocking (PID: %d)", pid)
 			return
 		}
 
 		// Load config and apply --gateway override if provided
 		cfg, err := config.Load()
 		if err != nil {
-			fmt.Printf("Error: failed to load config: %v\n", err)
+			ui.Error("Failed to load config: %v", err)
 			return
 		}
 		if cfg.Key == "" {
-			fmt.Println("Error: no key configured. Run 'rockorbust key set <key>' first.")
+			ui.Error("No key configured. Run 'rockorbust key set <key>' or 'rockorbust key generate' first.")
 			return
 		}
 
@@ -41,7 +41,7 @@ var startCmd = &cobra.Command{
 		// Re-run this binary with the internal --daemon flag, detached from the terminal.
 		self, err := os.Executable()
 		if err != nil {
-			fmt.Printf("Error: could not determine executable path: %v\n", err)
+			ui.Error("Could not determine executable path: %v", err)
 			return
 		}
 
@@ -53,20 +53,20 @@ var startCmd = &cobra.Command{
 		child.Stdin = nil
 
 		if err := child.Start(); err != nil {
-			fmt.Printf("Error: failed to start daemon: %v\n", err)
+			ui.Error("Failed to start daemon: %v", err)
 			return
 		}
 
 		// Write the child's PID so status/stop can track it
 		if err := daemon.WritePID(child.Process.Pid); err != nil {
-			fmt.Printf("Warning: daemon started but PID file could not be written: %v\n", err)
+			ui.Warning("Daemon started but PID file could not be written: %v", err)
 		}
 
-		fmt.Printf("✓ Daemon started (PID: %d)\n", child.Process.Pid)
+		ui.Success("Daemon is now rocking (PID: %d)", child.Process.Pid)
 	},
 }
 
 func init() {
-	startCmd.Flags().String("gateway", "", "Override the gateway WebSocket URL (e.g. ws://example.com:8080)")
-	rootCmd.AddCommand(startCmd)
+	rockCmd.Flags().String("gateway", "", "Override the gateway WebSocket URL (e.g. ws://example.com:8080)")
+	rootCmd.AddCommand(rockCmd)
 }

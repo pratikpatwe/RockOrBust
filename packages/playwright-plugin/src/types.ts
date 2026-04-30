@@ -1,5 +1,11 @@
 import { LaunchOptions as PlaywrightLaunchOptions } from 'playwright';
 
+declare module 'playwright' {
+  interface LaunchOptions {
+    rockorbust?: RockOrBustOptions;
+  }
+}
+
 export interface RockOrBustOptions {
   /**
    * Your RockOrBust access key (starts with rob_)

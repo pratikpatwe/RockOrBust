@@ -28,7 +28,13 @@ rockorbust key generate
 ```
 This command will request a unique `rob_` key and save it to your local configuration file automatically.
 
-### 2. Manual Key Configuration
+### 2. View Active Key
+To display the key currently in use:
+```bash
+rockorbust key show
+```
+
+### 3. Manual Key Configuration
 If you have been provided a key by an administrator:
 ```bash
 rockorbust key set rob_your_key_here
@@ -36,10 +42,10 @@ rockorbust key set rob_your_key_here
 
 ## Management
 
-### Start Node
+### Start Node (Rock)
 Starts the residential proxy daemon in the background:
 ```bash
-rockorbust start
+rockorbust rock
 ```
 
 ### Check Status
@@ -48,10 +54,10 @@ Verify connection health and view the active PID:
 rockorbust status
 ```
 
-### Stop Node
+### Stop Node (Bust)
 Gracefully disconnect and stop the background daemon:
 ```bash
-rockorbust stop
+rockorbust bust
 ```
 
 ## Troubleshooting

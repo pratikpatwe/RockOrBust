@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -18,16 +19,35 @@ var keyCmd = &cobra.Command{
 	Short: "Manage your residential access key",
 }
 
+var keyShowCmd = &cobra.Command{
+	Use:   "show",
+	Short: "Display your current access key",
+	Run: func(cmd *cobra.Command, args []string) {
+		cfg, err := config.Load()
+		if err != nil {
+			ui.Error("Failed to load configuration: %v", err)
+			return
+		}
+
+		if cfg.Key == "" {
+			ui.Warning("No access key found. Run 'rockorbust key generate' to get one.")
+			return
+		}
+
+		fmt.Printf("Current Key: %s\n", ui.BoldText(cfg.Key))
+	},
+}
+
 var keyGenerateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Get a new rob_ key automatically",
 	Long:  `Securely requests a new unique access key from the gateway and saves it to your local configuration.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("🛰️ Requesting new key from gateway...")
+		ui.Info("Requesting new key from gateway...")
 
 		resp, err := http.Post(defaultGateway+"/auth/register", "application/json", nil)
 		if err != nil {
-			fmt.Printf("Error: could not connect to gateway: %v\n", err)
+			ui.Error("Could not connect to gateway: %v", err)
 			return
 		}
 		defer resp.Body.Close()
@@ -37,7 +57,7 @@ var keyGenerateCmd = &cobra.Command{
 				Error string `json:"error"`
 			}
 			json.NewDecoder(resp.Body).Decode(&errResp)
-			fmt.Printf("Error: gateway returned %d - %s\n", resp.StatusCode, errResp.Error)
+			ui.Error("Gateway returned %d - %s", resp.StatusCode, errResp.Error)
 			return
 		}
 
@@ -45,17 +65,17 @@ var keyGenerateCmd = &cobra.Command{
 			Key string `json:"key"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&successResp); err != nil {
-			fmt.Printf("Error: failed to parse gateway response: %v\n", err)
+			ui.Error("Failed to parse gateway response: %v", err)
 			return
 		}
 
 		if err := config.SetKey(successResp.Key); err != nil {
-			fmt.Printf("Error: failed to save new key: %v\n", err)
+			ui.Error("Failed to save new key: %v", err)
 			return
 		}
 
-		fmt.Printf("✨ New key generated and saved: %s\n", successResp.Key)
-		fmt.Println("🚀 You can now run 'rockorbust start' to begin contributing.")
+		ui.Success("New key generated and saved: %s", ui.BoldText(successResp.Key))
+		fmt.Printf("Run '%s' to begin contributing.\n", ui.BoldText("rockorbust start"))
 	},
 }
 
@@ -68,20 +88,21 @@ var keySetCmd = &cobra.Command{
 		key := strings.TrimSpace(args[0])
 
 		if !strings.HasPrefix(key, "rob_") {
-			fmt.Println("Error: key must start with 'rob_'")
+			ui.Error("Key must start with 'rob_'")
 			return
 		}
 
 		if err := config.SetKey(key); err != nil {
-			fmt.Printf("Error: failed to save key: %v\n", err)
+			ui.Error("Failed to save key: %v", err)
 			return
 		}
 
-		fmt.Printf("✓ Key linked successfully.\n")
+		ui.Success("Key linked successfully.")
 	},
 }
 
 func init() {
+	keyCmd.AddCommand(keyShowCmd)
 	keyCmd.AddCommand(keySetCmd)
 	keyCmd.AddCommand(keyGenerateCmd)
 	rootCmd.AddCommand(keyCmd)

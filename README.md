@@ -65,15 +65,16 @@ No account registration is required. Simply download the CLI and use the followi
 | Command | Description |
 | :--- | :--- |
 | `rockorbust key generate` | Securely requests and saves a new unique access key from the gateway. |
+| `rockorbust key show` | Displays the current access key saved on the device. |
 | `rockorbust key set <key>` | Manually links your device to an existing `rob_` key. |
-| `rockorbust start` | Launches the residential node as a background daemon. |
+| `rockorbust rock` | Launches the residential node as a background daemon. |
 | `rockorbust status` | Displays the current connection health and process ID. |
-| `rockorbust stop` | Gracefully terminates the background daemon. |
+| `rockorbust bust` | Gracefully terminates the background daemon. |
 
 ```bash
 # Example: Quick Start
 rockorbust key generate
-rockorbust start
+rockorbust rock
 ```
 
 ### 3. Integrate with Playwright

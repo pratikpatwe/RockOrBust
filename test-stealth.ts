@@ -4,7 +4,7 @@ import { chromium } from './packages/playwright-plugin/src/index';
   console.log('🚀 Launching RockOrBust browser...');
   
   try {
-    const browser = await (chromium.launch as any)({
+    const browser = await chromium.launch({
       headless: true,
       rockorbust: {
         key: 'rob_test_key_123',

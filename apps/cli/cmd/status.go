@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -14,14 +15,14 @@ var statusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		pid, err := daemon.ReadPID()
 		if err != nil {
-			fmt.Printf("Error: could not read PID file: %v\n", err)
+			fmt.Printf("Status: %s\n", ui.RedText("Stopped"))
 			return
 		}
 
 		if daemon.IsRunning(pid) {
-			fmt.Printf("Running (PID: %d)\n", pid)
+			fmt.Printf("Status: %s (PID: %d)\n", ui.GreenText("Running"), pid)
 		} else {
-			fmt.Println("Not running")
+			fmt.Printf("Status: %s\n", ui.RedText("Stopped"))
 		}
 	},
 }

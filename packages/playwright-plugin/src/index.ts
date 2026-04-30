@@ -9,7 +9,7 @@ import {
 import { LaunchOptions, RockOrBustOptions } from './types';
 import { STEALTH_SCRIPT } from './stealth';
 
-const DEFAULT_GATEWAY = 'https://robapi.buildshot.xyz/';
+const DEFAULT_GATEWAY = 'http://robapi.buildshot.xyz:8080';
 
 function wrapBrowserType<T extends BrowserType>(browserType: T): T {
   const originalLaunch = browserType.launch.bind(browserType);

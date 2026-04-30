@@ -50,6 +50,32 @@ Generates a new unique `rob_` access key.
 ### WebSocket `/ws`
 Internal endpoint for Residential CLI nodes to establish a persistent tunnel. Requires a valid `rob_` key in the connection headers.
 
+## Self-Hosting & VPS Configuration
+
+When hosting the Gateway on a private VPS, specialized networking configuration is required to support secure proxy tunneling (HTTPS over HTTP).
+
+### 1. Network Requirements
+The Gateway multiplexes standard HTTP API calls and raw TCP proxy traffic. Your environment must support:
+- **Port Exposure**: The `PORT` defined in your `.env` (default: `8080`) must be open for both ingress and egress.
+- **Protocol Support**: If using a reverse proxy (Nginx, HAProxy, Traefik), you **must** use a Layer 4 (Stream/TCP) configuration for the proxy port.
+
+### 2. Reverse Proxy Configuration (L4/TCP Passthrough)
+Standard Layer 7 (HTTP) load balancers will reject the `CONNECT` method used by Playwright. To ensure stability, configure your reverse proxy to pass raw TCP traffic directly to the Gateway.
+
+**Example: Nginx (Stream Module)**
+```nginx
+stream {
+    server {
+        listen 8080;
+        proxy_pass gateway_backend:8080;
+    }
+}
+```
+
+### 3. Protocol Selection
+- **API (Port 443/80)**: Use standard HTTPS for key generation and status checks.
+- **Proxy (Port 8080)**: Use raw `http://` (unencrypted) for the proxy server address. Encryption is handled at the tunnel level by the Browser/Gateway handshake.
+
 ---
 
 MIT © [BuildShot](https://buildshot.xyz)

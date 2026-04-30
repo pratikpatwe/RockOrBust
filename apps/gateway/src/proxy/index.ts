@@ -56,9 +56,26 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
   if (!node) {
     if (fallback) {
       console.log(`No node for ${key}, falling back to VPS IP for HTTP ${req.method} ${req.url}`);
-      // Simple fallback: Forward directly from VPS (Note: This is a basic implementation)
-      res.writeHead(502);
-      res.end('VPS Fallback requested but direct routing not yet fully implemented in this phase. Please wait for the next update.');
+      
+      const targetUrl = new URL(req.url!);
+      const proxyReq = http.request({
+        hostname: targetUrl.hostname,
+        port: targetUrl.port || 80,
+        path: targetUrl.pathname + targetUrl.search,
+        method: req.method,
+        headers: req.headers
+      }, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+        proxyRes.pipe(res);
+      });
+
+      proxyReq.on('error', (err) => {
+        console.error('VPS Fallback HTTP error:', err.message);
+        res.writeHead(502);
+        res.end('VPS Fallback failed');
+      });
+
+      req.pipe(proxyReq);
       return;
     }
     res.writeHead(502);

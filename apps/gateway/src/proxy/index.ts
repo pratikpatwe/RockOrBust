@@ -139,8 +139,9 @@ function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; 
   const auth = req.headers['proxy-authorization'];
   if (auth && auth.startsWith('Basic ')) {
     const credentials = Buffer.from(auth.split(' ')[1], 'base64').toString();
-    const [username] = credentials.split(':');
-    rawKey = username;
+    // The rawKey is everything before the last colon (which separates username from password)
+    const lastColonIndex = credentials.lastIndexOf(':');
+    rawKey = lastColonIndex !== -1 ? credentials.substring(0, lastColonIndex) : credentials;
   }
 
   const customKey = req.headers['x-rob-key'];

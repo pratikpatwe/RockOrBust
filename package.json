@@ -13,6 +13,10 @@
     "cli:build": "cd apps/cli && go build -o ../../bin/rockorbust main.go",
     "build:all": "npm run gateway:build && npm run plugin:build && npm run cli:build"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pratikpatwe/RockOrBust.git"
+  },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "ts-node": "^10.9.2",

@@ -23,12 +23,20 @@ class TunnelManager {
     
     this.pendingRequests.set(requestId, { res, type: 'HTTP' });
 
+    // Strip proxy-specific headers before forwarding to the residential node.
+    // These headers are definitive bot-detection signals and must never reach the target server.
+    const {
+      'proxy-authorization': _auth,
+      'proxy-connection': _conn,
+      ...cleanHeaders
+    } = req.headers;
+
     const payload = {
       type: 'HTTP_REQUEST',
       id: requestId,
       method: req.method,
       url: req.url,
-      headers: req.headers,
+      headers: cleanHeaders,
       body: body ? body.toString('base64') : null
     };
 

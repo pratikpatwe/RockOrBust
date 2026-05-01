@@ -21,6 +21,10 @@ class NodeRegistry {
     this.connections.get(keyId)?.add({ id: nodeId, ws, hostname, latency: 999 }); // Default to slow
   }
 
+  getConnectionCount(keyId: string): number {
+    return this.connections.get(keyId)?.size || 0;
+  }
+
   updateLatency(keyId: string, ws: WebSocket, ms: number) {
     const keyConnections = this.connections.get(keyId);
     if (keyConnections) {

@@ -18,7 +18,7 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 	<key>ProgramArguments</key>
 	<array>
 		<string>%s</string>
-		<string>rock</string>
+		<string>--daemon</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

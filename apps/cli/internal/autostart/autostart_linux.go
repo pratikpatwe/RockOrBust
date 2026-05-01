@@ -15,7 +15,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=%s rock
+ExecStart=%s --daemon
 Restart=always
 
 [Install]

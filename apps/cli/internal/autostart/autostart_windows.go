@@ -24,8 +24,8 @@ func Enable() error {
 	}
 	defer key.Close()
 
-	// Use "rock" command as the startup command, wrap path in quotes to handle spaces
-	return key.SetStringValue(appName, fmt.Sprintf("\"%s\" rock", execPath))
+	// Use --daemon flag to start silently in the background, bypasses mousetrap/explorer checks
+	return key.SetStringValue(appName, fmt.Sprintf("\"%s\" --daemon", execPath))
 }
 
 func Disable() error {

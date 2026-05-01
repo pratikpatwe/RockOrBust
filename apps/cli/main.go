@@ -16,24 +16,7 @@ import (
 )
 
 func main() {
-	// Detect if started by Windows Explorer (double-click)
-	if isStartedByExplorer() && !install.IsInstalled() {
-		ui.Info("RockOrBust detected first-run from Explorer.")
-		ui.Info("Initiating automatic global installation...")
-		if err := install.Install(); err != nil {
-			ui.Error("Auto-install failed: %v", err)
-			ui.Info("Press Enter to exit...")
-			var input string
-			fmt.Scanln(&input)
-			os.Exit(1)
-		}
-		ui.Info("Press Enter to exit...")
-		var input string
-		fmt.Scanln(&input)
-		return
-	}
-
-	// Internal check for daemon mode. We do this manually to avoid 
+	// 1. Internal check for daemon mode. We do this manually to avoid 
 	// flag.Parse() conflicting with Cobra's flag handling.
 	args := os.Args[1:]
 	isDaemon := false
@@ -50,7 +33,27 @@ func main() {
 
 	if isDaemon {
 		// This is the child daemon process running in the background.
+		// We process this FIRST to ensure autostart (which uses --daemon) 
+		// isn't blocked by explorer/mousetrap checks.
 		runDaemon(gatewayURL)
+		return
+	}
+
+	// 2. Detect if started by Windows Explorer (double-click)
+	// We only do this for interactive sessions.
+	if isStartedByExplorer() && !install.IsInstalled() {
+		ui.Info("RockOrBust detected first-run from Explorer.")
+		ui.Info("Initiating automatic global installation...")
+		if err := install.Install(); err != nil {
+			ui.Error("Auto-install failed: %v", err)
+			ui.Info("Press Enter to exit...")
+			var input string
+			fmt.Scanln(&input)
+			os.Exit(1)
+		}
+		ui.Info("Press Enter to exit...")
+		var input string
+		fmt.Scanln(&input)
 		return
 	}
 

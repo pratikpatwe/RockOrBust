@@ -4,15 +4,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pratikpatwe/RockOrBust/cli/internal/install"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "rockorbust",
-	Short: "RockOrBust — The ultimate stealth residential proxy network",
+	Use:     "rockorbust",
+	Version: version.Version,
+	Short:   "RockOrBust — The ultimate stealth residential proxy network",
 	Long: `RockOrBust is a high-performance stealth proxy network that humanizes
 automation by routing traffic through real residential connections.
+
+` + ui.BoldText("Version: ") + version.Version + `
 
 ` + ui.BoldText("Quick Start:") + `
   1. rockorbust key generate  - Get your unique access key
@@ -20,6 +25,18 @@ automation by routing traffic through real residential connections.
   3. rockorbust rock          - Join the residential network
   4. rockorbust status        - Check your connection health
   5. rockorbust bust          - Leave the network`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Only check if we are NOT running the install command itself
+		if cmd.Name() != "install" && !install.IsInstalled() {
+			ui.Warning("RockOrBust is not installed globally.")
+			ui.Info("Run 'rockorbust install' to enable access from any terminal.")
+			fmt.Println()
+		}
+	},
+}
+
+func init() {
+	rootCmd.SetVersionTemplate(ui.BoldText("RockOrBust CLI version: ") + "{{.Version}}\n")
 }
 
 // Execute is the entry point called from main.go

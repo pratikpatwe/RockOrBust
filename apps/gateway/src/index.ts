@@ -3,8 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import authRoutes from './routes/auth';
+import cliRoutes from './routes/cli';
 import { setupWebSocket } from './websocket';
 import { setupProxy } from './proxy';
+import { startUpdater } from './lib/updater';
 
 dotenv.config();
 
@@ -21,10 +23,14 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/api/cli', cliRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);
 setupProxy(server);
+
+// Start background tasks
+startUpdater();
 
 server.listen(port, () => {
   console.log(`Rock or Bust Gateway listening on port ${port}`);

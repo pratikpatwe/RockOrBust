@@ -29,7 +29,8 @@ func CheckForUpdate(gatewayURL string) (*UpdateInfo, error) {
 		apiURL = "https://" + apiURL[6:]
 	}
 	
-	resp, err := http.Get(apiURL + "/api/cli/latest")
+	query := fmt.Sprintf("?os=%s&arch=%s", runtime.GOOS, runtime.GOARCH)
+	resp, err := http.Get(apiURL + "/api/cli/latest" + query)
 	if err != nil {
 		return nil, err
 	}

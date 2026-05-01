@@ -72,7 +72,6 @@ app.get('/', (req, res) => {
           height: 12px;
           border-radius: 50%;
           background: #00ff88;
-          box-shadow: 0 0 15px #00ff88;
           animation: pulse 2s infinite;
         }
         .label {
@@ -97,12 +96,11 @@ app.get('/', (req, res) => {
     </head>
     <body>
       <div class="container">
-        <div class="logo">RockOrBust // Gateway</div>
+        <div class="logo">RockOrBust Gateway</div>
         <div class="status-container">
           <div class="indicator"></div>
           <div class="label">STATUS: <span class="status-text">OPERATIONAL</span></div>
         </div>
-        <div class="footer">v1.0.0 // Node Orchestration Active</div>
       </div>
     </body>
     </html>

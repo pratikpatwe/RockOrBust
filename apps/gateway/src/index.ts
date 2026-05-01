@@ -7,23 +7,116 @@ import cliRoutes from './routes/cli';
 import { setupWebSocket } from './websocket';
 import { setupProxy } from './proxy';
 import { startUpdater } from './lib/updater';
+import { rateLimit } from 'express-rate-limit';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Standard limiter for public routes: 60 requests per minute
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  message: { error: 'Too many requests. Please try again in a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(cors());
 app.use(express.json());
 
-// Basic health check
-app.get('/health', (req, res) => {
+// Landing Page (Cyber Aesthetic)
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>RockOrBust Gateway</title>
+      <style>
+        body {
+          margin: 0;
+          background: #0a0a0a;
+          color: #e0e0e0;
+          font-family: 'JetBrains Mono', 'Fira Code', monospace;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          overflow: hidden;
+        }
+        .container {
+          text-align: center;
+          border: 1px solid #333;
+          padding: 3rem 4rem;
+          background: rgba(20, 20, 20, 0.8);
+          border-radius: 8px;
+          box-shadow: 0 0 30px rgba(0,0,0,0.5);
+          backdrop-filter: blur(10px);
+        }
+        .logo {
+          font-size: 0.8rem;
+          letter-spacing: 0.5rem;
+          color: #666;
+          margin-bottom: 2rem;
+          text-transform: uppercase;
+        }
+        .status-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+        }
+        .indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #00ff88;
+          box-shadow: 0 0 15px #00ff88;
+          animation: pulse 2s infinite;
+        }
+        .label {
+          font-size: 1.2rem;
+          font-weight: 300;
+        }
+        .status-text {
+          color: #00ff88;
+          font-weight: bold;
+        }
+        @keyframes pulse {
+          0% { opacity: 0.4; }
+          50% { opacity: 1; }
+          100% { opacity: 0.4; }
+        }
+        .footer {
+          margin-top: 2rem;
+          font-size: 0.7rem;
+          color: #444;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">RockOrBust // Gateway</div>
+        <div class="status-container">
+          <div class="indicator"></div>
+          <div class="label">STATUS: <span class="status-text">OPERATIONAL</span></div>
+        </div>
+        <div class="footer">v1.0.0 // Node Orchestration Active</div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Basic health check (JSON for monitoring tools)
+app.get('/health', publicLimiter, (req, res) => {
   res.json({ status: 'ok', service: 'gateway' });
 });
 
 // Routes
 app.use('/auth', authRoutes);
-app.use('/api/cli', cliRoutes);
+app.use('/api/cli', publicLimiter, cliRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);

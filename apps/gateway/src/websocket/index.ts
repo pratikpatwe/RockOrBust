@@ -39,7 +39,7 @@ export function setupWebSocket(server: Server) {
     const keyId = keyData.id;
     const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
 
-    // 2. Register node as online
+    // 3. Register node as online
     // We update the existing node if it exists for this key/hostname, or insert a new one.
     // This requires a UNIQUE(key_id, hostname) constraint on the rob_nodes table.
     const { data: nodeData, error: nodeError } = await supabase

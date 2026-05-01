@@ -15,8 +15,10 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 
 | Endpoint | Method | Protocol | Description |
 | :--- | :--- | :--- | :--- |
+| `/`              | `GET`  | HTTP | Premium landing page and status dashboard. |
 | `/auth/register` | `POST` | HTTP | Generates a new unique `rob_` key (Rate limited: 1/hr). |
 | `/api/cli/latest`| `GET`  | HTTP | Returns the latest CLI version and OS-specific download URL. |
+| `/health`        | `GET`  | HTTP | Lightweight JSON status for automated monitoring. |
 | `/ws` | `Upgrade` | WebSocket | Primary tunnel entry for Residential CLI nodes. |
 | `*` (Root) | `CONNECT` | Proxy | Standard HTTP Proxy entry point for Playwright traffic. |
 

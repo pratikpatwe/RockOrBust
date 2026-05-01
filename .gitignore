@@ -43,3 +43,4 @@ build/
 # --- Logs ---
 logs/
 *.log
+test-plugin/

@@ -50,7 +50,8 @@ The project consists of three integrated components:
 
 - **Residential IP Routing**: Route traffic through real home connections to avoid datacenter IP reputation flags.
 - **Latency-Based Selection**: The Gateway automatically prioritizes nodes with optimal response times for high-performance scraping.
-- **Browser Fingerprint Spoofing**: Automatically masks `navigator.webdriver`, spoofs hardware concurrency, and mocks Chromium runtime properties to hide automation signals.
+- **Advanced Fingerprint Deception**: Defeats advanced bot detection platforms (like Sannysoft) with deep JavaScript prototype faking (PluginArray/MimeType), Client Hints (userAgentData) mocking, and native Chromium flag manipulation.
+- **Native Browser Masking**: Strips HeadlessChrome User-Agents, hides WebDriver signatures via `--disable-blink-features=AutomationControlled`, and forces realistic physical display rendering (Hairline bypass).
 - **Transparent Integration**: Maintain your existing Playwright logic while gaining advanced stealth capabilities.
 - **Resilient Fallback**: Optional VPS failover ensures connectivity even when the residential pool is undersized.
 

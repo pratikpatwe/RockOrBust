@@ -75,6 +75,14 @@ func Load() (*Config, error) {
 		cfg.GatewayURL = defaultGateway
 	}
 
+	// Migration: If the user is still pointing to the old localhost default from 
+	// previous beta versions, upgrade them to the production gateway automatically.
+	if cfg.GatewayURL == "ws://localhost:8080" || cfg.GatewayURL == "http://localhost:8080" {
+		cfg.GatewayURL = defaultGateway
+		// We don't save here to avoid side effects during load, 
+		// but it will be corrected for the current session.
+	}
+
 	return &cfg, nil
 }
 

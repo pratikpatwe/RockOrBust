@@ -9,14 +9,124 @@ export const STEALTH_SCRIPT = `
   // 1. Mask navigator.webdriver (All Browsers) - Handled natively by launch flags
 
 
-  // 2. Mock Chrome Runtime (Only for Chromium to hide headless signals)
+  // 2. Mock Chrome Runtime (Only for Chromium) - Full accurate structure
   if (isChromium) {
-    window.chrome = {
-      runtime: {},
-      loadTimes: function() {},
-      csi: function() {},
-      app: {}
-    };
+    if (!window.chrome) {
+      Object.defineProperty(window, 'chrome', {
+        writable: true,
+        enumerable: true,
+        configurable: false,
+        value: {}
+      });
+    }
+
+    // Only mock runtime if it's not already set (i.e. we're headless)
+    if (!('runtime' in window.chrome)) {
+      const isValidExtensionID = str =>
+        str.length === 32 && str.toLowerCase().match(/^[a-p]+$/);
+
+      const makeErrors = (preamble, method, extensionId) => ({
+        NoMatchingSignature: new TypeError(preamble + 'No matching signature.'),
+        MustSpecifyExtensionID: new TypeError(
+          preamble + method + ' called from a webpage must specify an Extension ID (string) for its first argument.'
+        ),
+        InvalidExtensionID: new TypeError(preamble + "Invalid extension id: '" + extensionId + "'")
+      });
+
+      // Simulates the port object returned by chrome.runtime.connect()
+      const makePort = () => {
+        const onEvent = () => ({
+          addListener: function addListener() {},
+          dispatch: function dispatch() {},
+          hasListener: function hasListener() {},
+          hasListeners: function hasListeners() { return false; },
+          removeListener: function removeListener() {}
+        });
+        return {
+          name: '',
+          sender: undefined,
+          disconnect: function disconnect() {},
+          onDisconnect: onEvent(),
+          onMessage: onEvent(),
+          postMessage: function postMessage() {
+            if (!arguments.length) throw new TypeError('Insufficient number of arguments.');
+            throw new Error('Attempting to use a disconnected port object');
+          }
+        };
+      };
+
+      window.chrome.runtime = {
+        // --- Static enum data (source: real Chrome 120, verified from Chromium source) ---
+        OnInstalledReason: {
+          CHROME_UPDATE: 'chrome_update',
+          INSTALL: 'install',
+          SHARED_MODULE_UPDATE: 'shared_module_update',
+          UPDATE: 'update'
+        },
+        OnRestartRequiredReason: {
+          APP_UPDATE: 'app_update',
+          OS_UPDATE: 'os_update',
+          PERIODIC: 'periodic'
+        },
+        PlatformArch: {
+          ARM: 'arm', ARM64: 'arm64', MIPS: 'mips',
+          MIPS64: 'mips64', X86_32: 'x86-32', X86_64: 'x86-64'
+        },
+        PlatformNaclArch: {
+          ARM: 'arm', MIPS: 'mips', MIPS64: 'mips64',
+          X86_32: 'x86-32', X86_64: 'x86-64'
+        },
+        PlatformOs: {
+          ANDROID: 'android', CROS: 'cros', LINUX: 'linux',
+          MAC: 'mac', OPENBSD: 'openbsd', WIN: 'win'
+        },
+        RequestUpdateCheckStatus: {
+          NO_UPDATE: 'no_update',
+          THROTTLED: 'throttled',
+          UPDATE_AVAILABLE: 'update_available'
+        },
+
+        // id is undefined on non-extension pages, but the property must exist
+        get id() { return undefined; },
+
+        // connect() — throws the exact TypeErrors real Chrome does
+        connect: function connect() {
+          const args = Array.from(arguments);
+          const [extensionId, connectInfo] = args;
+          const preamble = 'Error in invocation of runtime.connect(optional string extensionId, optional object connectInfo): ';
+          const Errors = makeErrors(preamble, 'chrome.runtime.connect()', extensionId);
+
+          if (args.length === 0 || (args.length === 1 && extensionId === '')) throw Errors.MustSpecifyExtensionID;
+          if (args.length > 2 || (connectInfo && typeof connectInfo !== 'object')) throw Errors.NoMatchingSignature;
+          if (typeof extensionId === 'string') {
+            if (extensionId === '') throw Errors.MustSpecifyExtensionID;
+            if (!isValidExtensionID(extensionId)) throw Errors.InvalidExtensionID;
+          }
+          if (typeof extensionId === 'object') throw Errors.MustSpecifyExtensionID;
+          return makePort();
+        },
+
+        // sendMessage() — throws the exact TypeErrors real Chrome does
+        sendMessage: function sendMessage() {
+          const args = Array.from(arguments);
+          const [extensionId, , responseCallback] = args;
+          const preamble = 'Error in invocation of runtime.sendMessage(optional string extensionId, any message, optional object options, optional function responseCallback): ';
+          const Errors = makeErrors(preamble, 'chrome.runtime.sendMessage()', extensionId);
+
+          if (args.length === 0 || args.length > 4) throw Errors.NoMatchingSignature;
+          if (args.length < 2) throw Errors.MustSpecifyExtensionID;
+          if (typeof extensionId !== 'string') throw Errors.NoMatchingSignature;
+          if (!isValidExtensionID(extensionId)) throw Errors.InvalidExtensionID;
+          if (responseCallback && typeof responseCallback !== 'function') throw Errors.NoMatchingSignature;
+          return undefined;
+        }
+      };
+    }
+
+    // Keep other chrome properties that headless loses
+    if (!window.chrome.loadTimes) window.chrome.loadTimes = function() {};
+    if (!window.chrome.csi) window.chrome.csi = function() {};
+    if (!window.chrome.app) window.chrome.app = {};
   }
 
   // 3. Spoof Permissions

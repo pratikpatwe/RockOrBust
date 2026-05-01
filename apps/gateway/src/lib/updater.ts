@@ -24,7 +24,9 @@ let latestRelease: LatestReleaseInfo | null = null;
  */
 async function fetchLatestFromGitHub() {
   try {
-    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+    // We use /releases instead of /releases/latest because GitHub hides 
+    // "Pre-releases" (like beta versions) from the /latest endpoint.
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'RockOrBust-Gateway-Updater'
@@ -35,7 +37,14 @@ async function fetchLatestFromGitHub() {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = (await response.json()) as GitHubRelease;
+    const releases = (await response.json()) as GitHubRelease[];
+    
+    if (!releases || releases.length === 0) {
+      throw new Error('No releases found in the repository');
+    }
+
+    // The first item is always the most recent release (including pre-releases)
+    const data = releases[0];
     const assets: Record<string, string> = {};
 
     data.assets.forEach(asset => {

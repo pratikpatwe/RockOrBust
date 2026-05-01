@@ -5,19 +5,17 @@
 export const STEALTH_SCRIPT = `
 (() => {
   const isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-  const isFirefox = /Firefox/.test(navigator.userAgent);
-  const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-
+  
   // 1. Mask navigator.webdriver (All Browsers)
   try {
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => undefined,
-    });
+    const newProto = Object.getPrototypeOf(navigator);
+    delete newProto.webdriver;
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
   } catch (e) {}
 
   // 2. Mock Chrome Runtime (Only for Chromium to hide headless signals)
   if (isChromium) {
-    window.chrome = window.chrome || {
+    window.chrome = {
       runtime: {},
       loadTimes: function() {},
       csi: function() {},
@@ -25,7 +23,7 @@ export const STEALTH_SCRIPT = `
     };
   }
 
-  // 3. Spoof Permissions (If applicable)
+  // 3. Spoof Permissions
   if (navigator.permissions && navigator.permissions.query) {
     const originalQuery = navigator.permissions.query;
     navigator.permissions.query = (parameters) => (
@@ -35,58 +33,71 @@ export const STEALTH_SCRIPT = `
     );
   }
 
-  // 4. Spoof Plugins (Browser-specific logic)
+  // 4. Advanced Plugin Mocking (Standard Chrome Profile)
+  const mockPlugins = [
+    { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
+    { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
+    { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
+    { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
+    { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] }
+  ];
+
   if (isChromium) {
     Object.defineProperty(navigator, 'plugins', {
-      get: () => [
-        {
-          0: {type: "application/x-google-chrome-pdf", suffixes: "pdf", description: "Portable Document Format", enabledPlugin: Plugin},
-          description: "Portable Document Format",
-          filename: "internal-pdf-viewer",
-          length: 1,
-          name: "Chrome PDF Plugin"
-        },
-        {
-          0: {type: "application/pdf", suffixes: "pdf", description: "Portable Document Format", enabledPlugin: Plugin},
-          description: "Portable Document Format",
-          filename: "internal-pdf-viewer",
-          length: 1,
-          name: "Chrome PDF Viewer"
-        }
-      ],
+      get: () => {
+        const p = [...mockPlugins];
+        p.item = (i) => p[i];
+        p.namedItem = (name) => p.find(i => i.name === name);
+        p.refresh = () => {};
+        return p;
+      },
     });
   }
 
-  // 5. Spoof Languages (All Browsers)
+  // 5. Advanced WebGL Masking (Mimic a high-end GPU)
   try {
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['en-US', 'en'],
-    });
-  } catch (e) {}
-
-  // 6. Fix Hardware Concurrency (All Browsers - Mock as a typical 8-core machine)
-  try {
-    Object.defineProperty(navigator, 'hardwareConcurrency', {
-      get: () => 8,
-    });
-  } catch (e) {}
-
-  // 7. Canvas Fingerprinting Protection (All Browsers - Add subtle noise)
-  try {
-    const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function(type, attributes) {
-      const context = originalGetContext.apply(this, [type, attributes]);
-      if (type === '2d' && context) {
-        const originalGetImageData = context.getImageData;
-        context.getImageData = function(x, y, w, h) {
-          const imageData = originalGetImageData.apply(this, [x, y, w, h]);
-          // Add subtle noise to the first pixel (breaks hash-based tracking)
-          imageData.data[0] = imageData.data[0] + (Math.random() > 0.5 ? 1 : -1);
-          return imageData;
-        };
+    const getParameterProxyHandler = {
+      apply: function(target, ctx, args) {
+        const param = args[0];
+        // UNMASKED_VENDOR_WEBGL
+        if (param === 37445) return 'Google Inc. (NVIDIA)';
+        // UNMASKED_RENDERER_WEBGL
+        if (param === 37446) return 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Direct3D11 vs_5_0 ps_5_0, D3D11)';
+        return target.apply(ctx, args);
       }
-      return context;
     };
+    WebGLRenderingContext.prototype.getParameter = new Proxy(WebGLRenderingContext.prototype.getParameter, getParameterProxyHandler);
+    WebGL2RenderingContext.prototype.getParameter = new Proxy(WebGL2RenderingContext.prototype.getParameter, getParameterProxyHandler);
+  } catch (e) {}
+
+  // 6. Hardware Signals (Cores & Memory)
+  try {
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+  } catch (e) {}
+
+  // 7. Broken Image Detection (Simulate real browser placeholder behavior)
+  try {
+    const originalNaturalWidth = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'naturalWidth').get;
+    const originalNaturalHeight = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'naturalHeight').get;
+    
+    Object.defineProperty(HTMLImageElement.prototype, 'naturalWidth', {
+      get: function() {
+        const val = originalNaturalWidth.call(this);
+        return (val === 0 && this.complete) ? 16 : val;
+      }
+    });
+    Object.defineProperty(HTMLImageElement.prototype, 'naturalHeight', {
+      get: function() {
+        const val = originalNaturalHeight.call(this);
+        return (val === 0 && this.complete) ? 16 : val;
+      }
+    });
+  } catch (e) {}
+
+  // 8. Navigator UI Checks
+  try {
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
   } catch (e) {}
 })();
 `;

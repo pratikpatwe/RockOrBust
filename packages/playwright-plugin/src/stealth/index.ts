@@ -34,23 +34,64 @@ export const STEALTH_SCRIPT = `
   }
 
   // 4. Advanced Plugin Mocking (Standard Chrome Profile)
-  const mockPlugins = [
-    { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
-    { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
-    { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
-    { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] },
-    { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format', mimeTypes: [{ type: 'application/pdf', suffixes: 'pdf', description: 'Portable Document Format' }] }
-  ];
-
   if (isChromium) {
+    const mockPluginsData = [
+      { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', type: 'application/pdf', suffixes: 'pdf' },
+      { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', type: 'application/pdf', suffixes: 'pdf' },
+      { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', type: 'application/pdf', suffixes: 'pdf' },
+      { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format', type: 'application/pdf', suffixes: 'pdf' },
+      { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format', type: 'application/pdf', suffixes: 'pdf' }
+    ];
+
+    const generateMimeTypeArray = () => {
+      const mimeTypes = [];
+      Object.setPrototypeOf(mimeTypes, MimeTypeArray.prototype);
+      return mimeTypes;
+    };
+
+    const generatePluginArray = () => {
+      const plugins = [];
+      Object.setPrototypeOf(plugins, PluginArray.prototype);
+      
+      mockPluginsData.forEach((p, i) => {
+        const mimeType = {
+          type: p.type,
+          suffixes: p.suffixes,
+          description: p.description,
+          enabledPlugin: null
+        };
+        Object.setPrototypeOf(mimeType, MimeType.prototype);
+        
+        const plugin = {
+          name: p.name,
+          filename: p.filename,
+          description: p.description,
+          length: 1,
+          0: mimeType
+        };
+        Object.setPrototypeOf(plugin, Plugin.prototype);
+        mimeType.enabledPlugin = plugin;
+
+        plugins.push(plugin);
+        plugins[i] = plugin;
+        plugins[p.name] = plugin;
+      });
+
+      plugins.item = function(i) { return this[i] || null; };
+      plugins.namedItem = function(name) { return this[name] || null; };
+      plugins.refresh = function() {};
+      
+      return plugins;
+    };
+
+    const pluginArray = generatePluginArray();
     Object.defineProperty(navigator, 'plugins', {
-      get: () => {
-        const p = [...mockPlugins];
-        p.item = (i) => p[i];
-        p.namedItem = (name) => p.find(i => i.name === name);
-        p.refresh = () => {};
-        return p;
-      },
+      get: () => pluginArray
+    });
+    
+    const mimeTypeArray = generateMimeTypeArray();
+    Object.defineProperty(navigator, 'mimeTypes', {
+      get: () => mimeTypeArray
     });
   }
 

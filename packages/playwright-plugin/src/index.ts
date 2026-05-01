@@ -43,12 +43,27 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       ...pwOptions.proxy
     };
 
+    // Advanced Launch Args for Stealth (WebDriver Flag and Hairline Rendering)
+    if (stealth) {
+      pwOptions.args = [
+        ...(pwOptions.args || []),
+        '--disable-blink-features=AutomationControlled',
+        '--force-device-scale-factor=1',
+        '--hide-scrollbars'
+      ];
+      pwOptions.ignoreDefaultArgs = ['--enable-automation'];
+    }
+
     const browser = await originalLaunch(pwOptions);
 
     // Patch new contexts to include stealth scripts
     if (stealth) {
       const originalNewContext = browser.newContext.bind(browser);
       browser.newContext = async (contextOptions = {}) => {
+        // Enforce a realistic Windows User-Agent if none is provided to strip 'HeadlessChrome'
+        if (!contextOptions.userAgent) {
+          contextOptions.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        }
         const context = await originalNewContext(contextOptions);
         await context.addInitScript(STEALTH_SCRIPT);
         return context;

@@ -6,12 +6,8 @@ export const STEALTH_SCRIPT = `
 (() => {
   const isChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
   
-  // 1. Mask navigator.webdriver (All Browsers)
-  try {
-    const newProto = Object.getPrototypeOf(navigator);
-    delete newProto.webdriver;
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-  } catch (e) {}
+  // 1. Mask navigator.webdriver (All Browsers) - Handled natively by launch flags
+
 
   // 2. Mock Chrome Runtime (Only for Chromium to hide headless signals)
   if (isChromium) {

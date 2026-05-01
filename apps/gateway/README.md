@@ -8,6 +8,7 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 - **Bucketed Routing**: Implements an O(1) selection algorithm to prioritize low-latency nodes (<250ms).
 - **Authentication**: Validates request keys against a Supabase backend.
 - **WebSocket Tunneling**: Multiplexes incoming HTTP(S) proxy traffic over persistent WebSocket connections to residential nodes.
+- **Version Management**: Automated GitHub release tracking to serve the latest CLI binaries to the node network.
 - **Security**: Implements IP-based rate limiting for key generation and edge protection for the residential pool.
 
 ## API & Interface Reference
@@ -15,6 +16,7 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 | Endpoint | Method | Protocol | Description |
 | :--- | :--- | :--- | :--- |
 | `/auth/register` | `POST` | HTTP | Generates a new unique `rob_` key (Rate limited: 1/hr). |
+| `/api/cli/latest`| `GET`  | HTTP | Returns the latest CLI version and OS-specific download URL. |
 | `/ws` | `Upgrade` | WebSocket | Primary tunnel entry for Residential CLI nodes. |
 | `*` (Root) | `CONNECT` | Proxy | Standard HTTP Proxy entry point for Playwright traffic. |
 

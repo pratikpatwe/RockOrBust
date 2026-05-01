@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/pratikpatwe/RockOrBust/cli/internal/autostart"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
@@ -60,6 +61,11 @@ var rockCmd = &cobra.Command{
 		// Write the child's PID so status/stop can track it
 		if err := daemon.WritePID(child.Process.Pid); err != nil {
 			ui.Warning("Daemon started but PID file could not be written: %v", err)
+		}
+
+		// Enable autostart
+		if err := autostart.Enable(); err != nil {
+			ui.Warning("Could not enable autostart: %v", err)
 		}
 
 		ui.Success("Daemon is now rocking (PID: %d)", child.Process.Pid)

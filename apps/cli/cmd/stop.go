@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/pratikpatwe/RockOrBust/cli/internal/autostart"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
 	"github.com/spf13/cobra"
@@ -15,6 +16,12 @@ var bustCmd = &cobra.Command{
 			ui.Error("%v", err)
 			return
 		}
+
+		// Disable autostart
+		if err := autostart.Disable(); err != nil {
+			ui.Warning("Could not disable autostart: %v", err)
+		}
+
 		ui.Success("Daemon busted")
 	},
 }

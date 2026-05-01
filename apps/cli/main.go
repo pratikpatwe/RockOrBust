@@ -9,6 +9,7 @@ import (
 
 	"github.com/pratikpatwe/RockOrBust/cli/cmd"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/install"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/proxy"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
@@ -70,6 +71,17 @@ func isStartedByExplorer() bool {
 // runDaemon is the entry point for the background process.
 // It loads the config, starts the WebSocket client, and blocks until SIGTERM/SIGINT.
 func runDaemon(gatewayURL string) {
+	// Fix 1: Detach from the console window that Windows creates when the
+	// Registry launches this binary directly at boot. No-op on Linux/macOS.
+	hideConsole()
+
+	// Fix 2: Write our own PID so that 'rockorbust status' can find us.
+	// When launched by the Registry, the parent 'rock' command never runs,
+	// so we must record the PID ourselves.
+	if err := daemon.WritePID(os.Getpid()); err != nil {
+		log.Printf("[daemon] warning: could not write PID file: %v", err)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("[daemon] failed to load config: %v", err)

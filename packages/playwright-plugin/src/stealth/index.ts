@@ -51,36 +51,38 @@ export const STEALTH_SCRIPT = `
 
     const generatePluginArray = () => {
       const plugins = [];
-      Object.setPrototypeOf(plugins, PluginArray.prototype);
       
       mockPluginsData.forEach((p, i) => {
-        const mimeType = {
-          type: p.type,
-          suffixes: p.suffixes,
-          description: p.description,
-          enabledPlugin: null
-        };
-        Object.setPrototypeOf(mimeType, MimeType.prototype);
+        const mimeType = Object.create(MimeType.prototype);
+        Object.defineProperties(mimeType, {
+          type: { value: p.type, enumerable: false },
+          suffixes: { value: p.suffixes, enumerable: false },
+          description: { value: p.description, enumerable: false },
+          enabledPlugin: { value: null, writable: true, enumerable: false }
+        });
         
-        const plugin = {
-          name: p.name,
-          filename: p.filename,
-          description: p.description,
-          length: 1,
-          0: mimeType
-        };
-        Object.setPrototypeOf(plugin, Plugin.prototype);
+        const plugin = Object.create(Plugin.prototype);
+        Object.defineProperties(plugin, {
+          name: { value: p.name, enumerable: false },
+          filename: { value: p.filename, enumerable: false },
+          description: { value: p.description, enumerable: false },
+          length: { value: 1, enumerable: false },
+          0: { value: mimeType, enumerable: true }
+        });
+        
         mimeType.enabledPlugin = plugin;
 
         plugins.push(plugin);
-        plugins[i] = plugin;
-        plugins[p.name] = plugin;
+        Object.defineProperty(plugins, p.name, { value: plugin, enumerable: false });
       });
 
-      plugins.item = function(i) { return this[i] || null; };
-      plugins.namedItem = function(name) { return this[name] || null; };
-      plugins.refresh = function() {};
+      Object.defineProperties(plugins, {
+        item: { value: function(i) { return this[i] || null; }, enumerable: false },
+        namedItem: { value: function(name) { return this[name] || null; }, enumerable: false },
+        refresh: { value: function() {}, enumerable: false }
+      });
       
+      Object.setPrototypeOf(plugins, PluginArray.prototype);
       return plugins;
     };
 
@@ -139,6 +141,21 @@ export const STEALTH_SCRIPT = `
   // 8. Navigator UI Checks
   try {
     Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+  } catch (e) {}
+
+  // 9. User Agent Data (Client Hints) Mocking
+  try {
+    Object.defineProperty(navigator, 'userAgentData', {
+      get: () => ({
+        brands: [
+          { brand: 'Not_A Brand', version: '8' },
+          { brand: 'Chromium', version: '120' },
+          { brand: 'Google Chrome', version: '120' }
+        ],
+        mobile: false,
+        platform: 'Windows'
+      })
+    });
   } catch (e) {}
 })();
 `;

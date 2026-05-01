@@ -8,7 +8,8 @@ This package provides a drop-in stealth wrapper for Playwright's `chromium`, `fi
 
 - **Multi-Browser Support**: Drop-in replacement for `chromium`, `firefox`, and `webkit`.
 - **Transparent Proxying**: Automatically routes all context traffic through the RockOrBust residential gateway.
-- **Fingerprint Deception**: Context-aware masking of `navigator.webdriver`, `WebGL`/`Canvas` fingerprints, and hardware signals.
+- **Advanced Fingerprint Deception**: Deep prototype faking (`PluginArray`, `MimeTypeArray`) to defeat sophisticated `instanceof` detector checks.
+- **Native Browser Masking**: Injects standard Windows `User-Agent`/Client Hints, strips `HeadlessChrome` signatures, and removes `webdriver` natively via Chromium C++ flags.
 - **Zero Configuration**: Automatically picks up your `ROB_KEY` from environment variables.
 - **Drop-in Compatibility**: Works seamlessly with your existing Playwright scripts—no logic changes required.
 

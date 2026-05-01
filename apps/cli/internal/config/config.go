@@ -17,7 +17,7 @@ type Config struct {
 const (
 	configDirName  = "rockorbust"
 	configFileName = "config.json"
-	defaultGateway = "ws://localhost:8080"
+	defaultGateway = "wss://robapi.buildshot.xyz"
 )
 
 // configPath returns the OS-appropriate path to config.json.

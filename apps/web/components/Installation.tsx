@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Download01Icon } from '@hugeicons/core-free-icons';
+import { Download01Icon, CopyIcon } from '@hugeicons/core-free-icons';
 
 import { CopySnippet } from "./CopySnippet";
 
@@ -77,6 +77,26 @@ export function Installation() {
             Modular plugin designed perfectly for existing puppeteer-extra or playwright-extra projects.
           </p>
           <CopySnippet command="npm i @rockorbust/extra-plugin" variant="window" />
+          <div className="mt-4">
+            <CodeUsage 
+              ts={`import { chromium } from 'playwright-extra';
+import rockorbust from '@rockorbust/extra-plugin';
+
+chromium.use(rockorbust({
+  key: 'your_rob_key'
+}));
+
+const browser = await chromium.launch();`}
+              js={`const { chromium } = require('playwright-extra');
+const rockorbust = require('@rockorbust/extra-plugin');
+
+chromium.use(rockorbust({
+  key: 'your_rob_key'
+}));
+
+const browser = await chromium.launch();`}
+            />
+          </div>
         </div>
 
         {/* Tab 2: Playwright Native */}
@@ -89,6 +109,30 @@ export function Installation() {
             Zero-dependency Playwright wrapper with built-in stealth mocks and residential routing.
           </p>
           <CopySnippet command="npm i @rockorbust/playwright-plugin" variant="window" />
+          <div className="mt-4">
+            <CodeUsage 
+              ts={`import { chromium } from '@rockorbust/playwright-plugin';
+
+const browser = await chromium.launch({
+  rockorbust: {
+    key: 'your_rob_key',
+    stealth: true
+  }
+});
+
+const page = await browser.newPage();`}
+              js={`const { chromium } = require('@rockorbust/playwright-plugin');
+
+const browser = await chromium.launch({
+  rockorbust: {
+    key: 'your_rob_key',
+    stealth: true
+  }
+});
+
+const page = await browser.newPage();`}
+            />
+          </div>
         </div>
 
       </div>
@@ -162,5 +206,85 @@ export function Installation() {
         });
       `}} />
     </section>
+  );
+}
+
+function CodeUsage({ ts, js }: { ts: string, js: string }) {
+  const [lang, setLang] = useState<"ts" | "js">("ts");
+  const [copied, setCopied] = useState(false);
+
+  const activeColor = lang === "ts" ? "#3178C6" : "#FACC15";
+  const currentCode = lang === "ts" ? ts : js;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(currentCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-[#050505] border border-[#333] overflow-hidden group/usage flex flex-col h-[280px] relative">
+      <div className="flex items-center justify-between border-b border-[#333] bg-[#0A0A0A] px-4 py-2 shrink-0">
+        <div 
+          className="text-[10px] uppercase font-bold font-mono tracking-[0.2em] transition-colors flex items-center h-5"
+          style={{ color: activeColor }}
+        >
+          {lang === "ts" ? "TS" : "JS"}
+        </div>
+        <div className="flex bg-[#111] p-0.5 border border-[#333]">
+          <button 
+            onClick={() => setLang("ts")}
+            className={`px-2 py-0.5 text-[10px] font-mono transition-all ${lang === "ts" ? "bg-[#3178C6] text-white font-bold" : "text-[#555] hover:text-[#A3A3A3]"}`}
+          >
+            TS
+          </button>
+          <button 
+            onClick={() => setLang("js")}
+            className={`px-2 py-0.5 text-[10px] font-mono transition-all ${lang === "js" ? "bg-[#FACC15] text-black font-bold" : "text-[#555] hover:text-[#A3A3A3]"}`}
+          >
+            JS
+          </button>
+        </div>
+      </div>
+
+      <div className="relative flex-1 group/code overflow-hidden">
+        {/* Hover Copy Button */}
+        <button 
+          onClick={handleCopy}
+          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-[#0A0A0A]/80 backdrop-blur-sm border border-[#333] px-2 py-1 text-[9px] font-mono font-bold uppercase text-[#A3A3A3] opacity-0 group-hover/usage:opacity-100 transition-all hover:text-[#FACC15] hover:border-[#FACC15]/50"
+        >
+          {copied ? (
+            <span className="text-emerald-400">COPIED</span>
+          ) : (
+            <>
+              <HugeiconsIcon icon={CopyIcon} size={12} strokeWidth={2.5} />
+              <span>COPY</span>
+            </>
+          )}
+        </button>
+
+        <div className="p-4 overflow-y-auto scrollbar-hide h-full bg-[#050505]">
+          <pre className="text-[11px] font-mono leading-relaxed">
+            <code className="text-[#A3A3A3]">
+              {currentCode.split('\n').map((line, i) => (
+                <div key={i} className="flex">
+                  <span className="w-4 text-[#333] shrink-0 mr-4 select-none text-[9px]">{i + 1}</span>
+                  <span className="whitespace-pre">
+                    {line.split(/(\bimport\b|\brequire\b|\bconst\b|\bawait\b)/).map((part, j) => {
+                      const isKeyword = ['import', 'require', 'const', 'await'].includes(part);
+                      return (
+                        <span key={j} style={{ color: isKeyword ? activeColor : undefined }} className={isKeyword ? "opacity-80" : ""}>
+                          {part}
+                        </span>
+                      );
+                    })}
+                  </span>
+                </div>
+              ))}
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
   );
 }

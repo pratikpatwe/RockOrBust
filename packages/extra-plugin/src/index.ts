@@ -47,39 +47,44 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
    */
   private async checkNodeAvailability(gatewayUrl: string, key: string): Promise<boolean> {
     return new Promise((resolve) => {
-      const url = new URL(gatewayUrl);
-      const options = {
-        hostname: url.hostname,
-        port: url.port || (url.protocol === 'https:' ? 443 : 80),
-        path: `/api/stats/${key}`,
-        method: 'GET',
-        timeout: 2000 // 2 second timeout for the check
-      };
+      try {
+        const url = new URL(gatewayUrl);
+        const options = {
+          hostname: url.hostname,
+          port: url.port || (url.protocol === 'https:' ? 443 : 80),
+          path: `/api/stats/${key}`,
+          method: 'GET',
+          timeout: 2000 // 2 second timeout for the check
+        };
 
-      const req = http.request(options, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            resolve(json.activeNodes > 0);
-          } catch (e) {
-            resolve(false);
-          }
+        const req = http.request(options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => data += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              resolve(json.activeNodes > 0);
+            } catch (e) {
+              resolve(false);
+            }
+          });
         });
-      });
 
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => {
-        req.destroy();
+        req.on('error', () => resolve(false));
+        req.on('timeout', () => {
+          req.destroy();
+          resolve(false);
+        });
+        req.end();
+      } catch (e) {
         resolve(false);
-      });
-      req.end();
+      }
     });
   }
 
   /**
    * Intercepts browser launch to configure global proxy settings and base flags.
+   * Supports launch(), launchPersistentContext(), and connect().
    */
   async beforeLaunch(options: any) {
     const pluginOpts = (this as any).opts || {};
@@ -95,10 +100,10 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
 
     // Handle Local Fallback
     if (fallbackToLocal) {
-      this.debug('Checking node availability for Local Fallback...');
+      (this as any).debug('Checking node availability for Local Fallback...');
       const hasNodes = await this.checkNodeAvailability(gatewayUrl, key);
       if (!hasNodes) {
-        this.debug('No residential nodes available. Falling back to local connection.');
+        (this as any).debug('No residential nodes available. Falling back to local connection.');
         return; // Skip proxy configuration
       }
     }
@@ -126,6 +131,9 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     }
   }
 
+  /**
+   * Playwright-specific hook to ensure User-Agent persistence across new contexts.
+   */
   async beforeContext(options: any) {
     if (!options.userAgent) {
       (this as any).debug('Setting default User-Agent for new Playwright context');
@@ -133,6 +141,9 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     }
   }
 
+  /**
+   * Puppeteer-specific hook to ensure User-Agent persistence across new pages.
+   */
   async onPageCreated(page: any) {
     if (page.setUserAgent) {
       await page.setUserAgent(DEFAULT_USER_AGENT);
@@ -155,6 +166,7 @@ namespace rockorbust {
   export const Plugin = RockOrBustExtraPlugin;
 }
 
+// Support both require() and import syntax
 (rockorbust as any).default = rockorbust;
 
 export = rockorbust;

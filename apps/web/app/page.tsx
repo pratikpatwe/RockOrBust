@@ -40,7 +40,7 @@ export default function Home() {
       <footer className="max-w-[1200px] mx-auto w-full border border-dashed border-[#333] px-4 py-8 flex flex-col sm:flex-row items-center justify-between text-[#A3A3A3] text-sm font-mono gap-4">
         <div>MIT © BUILDSHOT</div>
         <div className="flex items-center gap-6">
-          <a href="#" className="hover:text-white transition-colors uppercase">Documentation</a>
+          <a href="https://github.com/pratikpatwe/RockOrBust/blob/main/README.md" target="_blank" rel="noreferrer" className="hover:text-white transition-colors uppercase">Documentation</a>
           <a href="https://github.com/pratikpatwe/RockOrBust/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer" className="hover:text-white transition-colors uppercase">Contribute</a>
           <a href="https://github.com/pratikpatwe/RockOrBust/issues/new" target="_blank" rel="noreferrer" className="hover:text-white transition-colors uppercase text-[#FACC15]">Report Bug</a>
         </div>

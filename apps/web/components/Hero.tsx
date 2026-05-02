@@ -68,9 +68,14 @@ export function Hero() {
                 Visualize Network
               </button>
 
-              <button className="bg-transparent text-white font-medium px-6 py-2.5 border border-[#333] hover:bg-[#111] transition-colors w-full sm:w-auto text-center whitespace-nowrap uppercase tracking-wide text-sm">
+              <a 
+                href="https://github.com/pratikpatwe/RockOrBust/blob/main/README.md"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-transparent text-white font-medium px-6 py-2.5 border border-[#333] hover:bg-[#111] transition-colors w-full sm:w-auto text-center whitespace-nowrap uppercase tracking-wide text-sm"
+              >
                 Read Docs
-              </button>
+              </a>
               
               {/* Desktop: Visualize Network Link | Mobile: Hidden */}
               <button 

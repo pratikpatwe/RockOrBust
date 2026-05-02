@@ -132,6 +132,29 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   }
 
   /**
+   * Patches new pages/contexts with reactive error diagnostics.
+   */
+  private async setupErrorDiagnostics(page: any) {
+    const pluginOpts = (this as any).opts || {};
+    const opts = { ...this.defaults, ...pluginOpts };
+    const { key, gatewayUrl } = opts;
+
+    // Listen for request failures to provide smart diagnostics
+    page.on('requestfailed', async (request: any) => {
+      const failure = typeof request.failure === 'function' ? request.failure() : null;
+      const errorText = failure?.errorText || '';
+      
+      if (errorText.includes('ERR_TUNNEL_CONNECTION_FAILED') || errorText.includes('ERR_PROXY_CONNECTION_FAILED')) {
+        const hasNodes = await this.checkNodeAvailability(gatewayUrl, key!);
+        if (!hasNodes) {
+          console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
+          console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your plugin options.\n\x1b[0m`);
+        }
+      }
+    });
+  }
+
+  /**
    * Playwright-specific hook to ensure User-Agent persistence across new contexts.
    */
   async beforeContext(options: any) {
@@ -145,9 +168,13 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
    * Puppeteer-specific hook to ensure User-Agent persistence across new pages.
    */
   async onPageCreated(page: any) {
+    // Apply User-Agent for Puppeteer
     if (page.setUserAgent) {
       await page.setUserAgent(DEFAULT_USER_AGENT);
     }
+    
+    // Apply Smart Error Handling
+    await this.setupErrorDiagnostics(page);
   }
 }
 

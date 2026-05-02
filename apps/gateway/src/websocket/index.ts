@@ -63,7 +63,7 @@ export function setupWebSocket(server: Server) {
     }
 
     const currentNodeId = nodeData.id;
-    nodeRegistry.register(key, currentNodeId, hostname, ws);
+    nodeRegistry.register(key, currentNodeId, hostname, ws, ipAddress);
     
     console.log(`Node connected: ${hostname} (${ipAddress}) for key ${key.substring(0, 10)}...`);
 

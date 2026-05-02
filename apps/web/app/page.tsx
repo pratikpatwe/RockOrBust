@@ -1,6 +1,7 @@
 import { Header } from "../components/Header";
 import { Hero } from "../components/Hero";
 import { Installation } from "../components/Installation";
+import { Visualizer } from "../components/Visualizer";
 import { Features } from "../components/Features";
 import { FaqSection } from "../components/FaqSection";
 
@@ -30,6 +31,7 @@ export default function Home() {
         {/* Rest of the content inside bordered container */}
         <div className="w-full max-w-[1200px] mx-auto border-x border-dashed border-[#333] flex flex-col">
           <Installation />
+          <Visualizer />
           <Features />
           <FaqSection />
         </div>

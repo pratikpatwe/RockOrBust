@@ -22,8 +22,8 @@ export default function Home() {
           <Hero />
         </div>
 
-        {/* Full-width ASCII Banner - no X padding, pure edge-to-edge */}
-        <div className="w-full h-[200px] sm:h-[250px] relative border-b border-dashed border-[#333]">
+        {/* Full-width ASCII Banner - no X padding, pure edge-to-edge - hidden on mobile */}
+        <div className="hidden lg:block w-full h-[200px] sm:h-[250px] relative border-b border-dashed border-[#333]">
           <AsciiArt />
         </div>
 

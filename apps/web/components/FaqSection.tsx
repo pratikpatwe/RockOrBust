@@ -121,24 +121,24 @@ export function FaqSection() {
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 border-t border-dashed border-[#333] pt-10">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 border-t border-dashed border-[#333] pt-10">
         <button 
           onClick={handlePrev} 
           disabled={currentPage === 0}
-          className="px-4 py-2 border border-[#333] text-[#A3A3A3] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:pointer-events-none transition-colors uppercase text-xs font-bold tracking-wider flex items-center gap-2"
+          className="px-3 py-2 sm:px-4 sm:py-2 border border-[#333] text-[#A3A3A3] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:pointer-events-none transition-colors uppercase text-[10px] sm:text-xs font-bold tracking-wider flex items-center gap-2"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 sm:w-3.5 sm:h-3.5">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
           Prev
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {Array.from({ length: TOTAL_PAGES }).map((_, idx) => (
             <button 
               key={idx} 
               onClick={() => handlePageClick(idx)}
-              className={`w-10 h-10 flex items-center justify-center border transition-colors font-mono text-sm
+              className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center border transition-colors font-mono text-xs sm:text-sm
                 ${currentPage === idx 
                   ? 'border-[#FACC15] bg-[#FACC15] text-black font-bold' 
                   : 'border-[#333] text-[#A3A3A3] hover:text-white hover:border-[#555] bg-[#050505]'
@@ -152,10 +152,10 @@ export function FaqSection() {
         <button 
           onClick={handleNext} 
           disabled={currentPage === TOTAL_PAGES - 1}
-          className="px-4 py-2 border border-[#333] text-[#A3A3A3] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:pointer-events-none transition-colors uppercase text-xs font-bold tracking-wider flex items-center gap-2"
+          className="px-3 py-2 sm:px-4 sm:py-2 border border-[#333] text-[#A3A3A3] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:pointer-events-none transition-colors uppercase text-[10px] sm:text-xs font-bold tracking-wider flex items-center gap-2"
         >
           Next
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 sm:w-3.5 sm:h-3.5">
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </button>

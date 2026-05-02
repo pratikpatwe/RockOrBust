@@ -54,7 +54,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
           port: url.port || (url.protocol === 'https:' ? 443 : 80),
           path: `/api/stats/${key}`,
           method: 'GET',
-          timeout: 2000 // 2 second timeout for the check
+          timeout: 2000 
         };
 
         const req = http.request(options, (res) => {
@@ -84,7 +84,6 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
 
   /**
    * Intercepts browser launch to configure global proxy settings and base flags.
-   * Supports launch(), launchPersistentContext(), and connect().
    */
   async beforeLaunch(options: any) {
     const pluginOpts = (this as any).opts || {};
@@ -104,7 +103,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
       const hasNodes = await this.checkNodeAvailability(gatewayUrl, key);
       if (!hasNodes) {
         (this as any).debug('No residential nodes available. Falling back to local connection.');
-        return; // Skip proxy configuration
+        return; 
       }
     }
 
@@ -132,8 +131,28 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   }
 
   /**
-   * Playwright-specific hook to ensure User-Agent persistence across new contexts.
+   * Patches new pages/contexts with reactive error diagnostics.
    */
+  private async setupErrorDiagnostics(page: any) {
+    const pluginOpts = (this as any).opts || {};
+    const opts = { ...this.defaults, ...pluginOpts };
+    const { key, gatewayUrl } = opts;
+
+    // Listen for request failures to provide smart diagnostics
+    page.on('requestfailed', async (request: any) => {
+      const failure = typeof request.failure === 'function' ? request.failure() : null;
+      const errorText = failure?.errorText || '';
+      
+      if (errorText.includes('ERR_TUNNEL_CONNECTION_FAILED') || errorText.includes('ERR_PROXY_CONNECTION_FAILED')) {
+        const hasNodes = await this.checkNodeAvailability(gatewayUrl, key!);
+        if (!hasNodes) {
+          console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
+          console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your plugin options.\n\x1b[0m`);
+        }
+      }
+    });
+  }
+
   async beforeContext(options: any) {
     if (!options.userAgent) {
       (this as any).debug('Setting default User-Agent for new Playwright context');
@@ -141,13 +160,14 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     }
   }
 
-  /**
-   * Puppeteer-specific hook to ensure User-Agent persistence across new pages.
-   */
   async onPageCreated(page: any) {
+    // Apply User-Agent for Puppeteer
     if (page.setUserAgent) {
       await page.setUserAgent(DEFAULT_USER_AGENT);
     }
+    
+    // Apply Smart Error Handling
+    await this.setupErrorDiagnostics(page);
   }
 }
 
@@ -166,7 +186,6 @@ namespace rockorbust {
   export const Plugin = RockOrBustExtraPlugin;
 }
 
-// Support both require() and import syntax
 (rockorbust as any).default = rockorbust;
 
 export = rockorbust;

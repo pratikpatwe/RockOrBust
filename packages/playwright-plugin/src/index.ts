@@ -80,7 +80,7 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
     if (fallbackToLocal) {
       const hasNodes = await checkNodeAvailability(gatewayUrl, key);
       if (!hasNodes) {
-        return originalLaunch(pwOptions); // Skip all proxying and just launch natively
+        return originalLaunch(pwOptions);
       }
     }
 
@@ -107,18 +107,33 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
 
     const browser = await originalLaunch(pwOptions);
 
-    // Patch BrowserContext to inject stealth scripts and mask User-Agent
-    if (stealth) {
-      const originalNewContext = browser.newContext.bind(browser);
-      browser.newContext = async (contextOptions = {}) => {
-        if (!contextOptions.userAgent) {
-          contextOptions.userAgent = DEFAULT_USER_AGENT;
-        }
-        const context = await originalNewContext(contextOptions);
+    // Patch BrowserContext to inject stealth scripts, mask User-Agent, and add Smart Diagnostics
+    const originalNewContext = browser.newContext.bind(browser);
+    browser.newContext = async (contextOptions = {}) => {
+      if (stealth && !contextOptions.userAgent) {
+        contextOptions.userAgent = DEFAULT_USER_AGENT;
+      }
+      
+      const context = await originalNewContext(contextOptions);
+      
+      if (stealth) {
         await context.addInitScript(STEALTH_SCRIPT);
-        return context;
-      };
-    }
+      }
+
+      // Smart Error Diagnostics
+      context.on('requestfailed', async (request) => {
+        const failure = request.failure();
+        if (failure && (failure.errorText.includes('ERR_TUNNEL_CONNECTION_FAILED') || failure.errorText.includes('ERR_PROXY_CONNECTION_FAILED'))) {
+          const hasNodes = await checkNodeAvailability(gatewayUrl, key);
+          if (!hasNodes) {
+            console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
+            console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your launch options.\n\x1b[0m`);
+          }
+        }
+      });
+
+      return context;
+    };
 
     return browser;
   };

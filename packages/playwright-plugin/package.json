@@ -1,6 +1,6 @@
 {
   "name": "@rockorbust/playwright-plugin",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Stealth proxy and fingerprint patching plugin for Playwright",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

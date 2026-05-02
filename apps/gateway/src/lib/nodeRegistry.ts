@@ -47,6 +47,7 @@ class NodeRegistry {
     }
   }
 
+  unregister(keyId: string, ws: WebSocket) {
     const keyConnections = this.connections.get(keyId);
     if (keyConnections) {
       for (const conn of keyConnections) {

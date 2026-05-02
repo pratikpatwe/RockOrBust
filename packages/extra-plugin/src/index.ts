@@ -1,4 +1,5 @@
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
+import http from 'http';
 
 /**
  * Configuration options for the RockOrBustExtraPlugin.
@@ -10,6 +11,8 @@ interface RockOrBustOptions {
   gatewayUrl?: string;
   /** Whether to fallback to the VPS IP if no residential nodes are available. */
   fallbackToVps?: boolean;
+  /** Whether to use the local machine IP if no residential nodes are available. */
+  fallbackToLocal?: boolean;
 }
 
 const DEFAULT_GATEWAY = 'http://robapi.buildshot.xyz:8080';
@@ -34,20 +37,70 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     return {
       key: process.env.ROB_KEY,
       gatewayUrl: DEFAULT_GATEWAY,
-      fallbackToVps: false
+      fallbackToVps: false,
+      fallbackToLocal: false
     };
   }
 
+  /**
+   * Helper to check node availability on the gateway.
+   */
+  private async checkNodeAvailability(gatewayUrl: string, key: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const url = new URL(gatewayUrl);
+      const options = {
+        hostname: url.hostname,
+        port: url.port || (url.protocol === 'https:' ? 443 : 80),
+        path: `/api/stats/${key}`,
+        method: 'GET',
+        timeout: 2000 // 2 second timeout for the check
+      };
+
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(json.activeNodes > 0);
+          } catch (e) {
+            resolve(false);
+          }
+        });
+      });
+
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
+      req.end();
+    });
+  }
+
+  /**
+   * Intercepts browser launch to configure global proxy settings and base flags.
+   */
   async beforeLaunch(options: any) {
     const pluginOpts = (this as any).opts || {};
     const opts = { ...this.defaults, ...pluginOpts };
-    const { key, gatewayUrl, fallbackToVps } = opts;
+    const { key, gatewayUrl, fallbackToVps, fallbackToLocal } = opts;
 
     if (!key || !key.startsWith('rob_')) {
       throw new Error(
         'RockOrBust: A valid ROB key (rob_*) is required. ' +
         'Specify it in the plugin constructor or via the ROB_KEY environment variable.'
       );
+    }
+
+    // Handle Local Fallback
+    if (fallbackToLocal) {
+      this.debug('Checking node availability for Local Fallback...');
+      const hasNodes = await this.checkNodeAvailability(gatewayUrl, key);
+      if (!hasNodes) {
+        this.debug('No residential nodes available. Falling back to local connection.');
+        return; // Skip proxy configuration
+      }
     }
 
     const proxyUsername = fallbackToVps ? `${key}:fallback` : key;
@@ -102,7 +155,6 @@ namespace rockorbust {
   export const Plugin = RockOrBustExtraPlugin;
 }
 
-// Support both require() and import syntax
 (rockorbust as any).default = rockorbust;
 
 export = rockorbust;

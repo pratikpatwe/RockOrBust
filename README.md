@@ -49,6 +49,7 @@ A high-performance standalone binary that contributes residential connections to
 The central orchestration layer that handles authentication and routing.
 - **Latency-Based Selection:** Automatically routes traffic through the fastest available node.
 - **IP Rotation:** Every request can hit a different residential IP.
+- **Reputation Protection:** Optional local fallback to protect your Gateway's VPS IP.
 - **ROB Key Auth:** Simple, secure key-based authentication.
 
 ### 3. The SDKs (Plugins)
@@ -65,6 +66,7 @@ Drop-in libraries for Playwright and Puppeteer.
 | **Best For** | High-performance, zero-dependency setups. | Modular setups with other "Extra" plugins. |
 | **Installation** | `@rockorbust/playwright-plugin` | `@rockorbust/extra-plugin` |
 | **Stealth** | **Built-in**: Native JS mocks for WebGL, UA, etc. | **External**: Use with `puppeteer-extra-plugin-stealth`. |
+| **Fallback Options** | VPS or Local Machine | VPS or Local Machine |
 | **Ecosystem** | Standalone | Puppeteer-Extra / Playwright-Extra |
 
 ---

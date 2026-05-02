@@ -65,6 +65,7 @@ puppeteer.use(rockorbust);
 | `key` | `string` | `process.env.ROB_KEY` | Your RockOrBust ROB key (starts with `rob_`). |
 | `gatewayUrl` | `string` | `http://robapi.buildshot.xyz:8080` | The RockOrBust Gateway URL. |
 | `fallbackToVps` | `boolean` | `false` | If true, falls back to the VPS IP if no residential nodes are online. |
+| `fallbackToLocal` | `boolean` | `false` | If true, bypasses proxy and uses local machine IP if no nodes are online. |
 
 ## License
 

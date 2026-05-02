@@ -57,6 +57,7 @@ The `chromium.launch` method accepts a `rockorbust` configuration object:
 | `key` | `string` | Your RockOrBust access key (required if `ROB_KEY` env var is missing). |
 | `gatewayUrl` | `string` | Custom gateway URL (defaults to `https://robapi.buildshot.xyz`). |
 | `fallbackToVps` | `boolean` | If `true`, traffic routes through the Gateway IP if no residential nodes are available. |
+| `fallbackToLocal` | `boolean` | If `true`, bypasses the proxy entirely if no residential nodes are available. |
 | `stealth` | `boolean` | Enable/disable automatic stealth script injection (defaults to `true`). |
 
 ## Why RockOrBust?

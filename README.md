@@ -57,55 +57,74 @@ Drop-in libraries for Playwright and Puppeteer.
 - **Native Plugin:** Zero-dependency, all-in-one wrapper with built-in stealth scripts.
 - **Extra Plugin:** Modular plugin for the playwright-extra and puppeteer-extra ecosystem.
 
+## Quick Start
+
+### 1. The Network (Go CLI)
+Download the binary for your platform and run it with your ROB key:
+```bash
+./rockorbust --key rob_your_key_here
+```
+
+### 2. Choose Your SDK
+
+#### Option A: Native Plugin (All-in-One)
+Best for clean, zero-dependency setups with built-in stealth scripts.
+```bash
+npm install @rockorbust/playwright-plugin
+```
+```javascript
+const { chromium } = require('@rockorbust/playwright-plugin');
+
+(async () => {
+  const browser = await chromium.launch({
+    rockorbust: { key: 'rob_your_key_here' }
+  });
+  const page = await browser.newPage();
+  await page.goto('https://api.ipify.org?format=json');
+  console.log(await page.content());
+  await browser.close();
+})();
+```
+
+#### Option B: Extra Plugin (Modular)
+Best for existing `puppeteer-extra` or `playwright-extra` projects.
+```bash
+npm install @rockorbust/extra-plugin
+```
+```javascript
+const { chromium } = require('playwright-extra');
+const rockorbust = require('@rockorbust/extra-plugin')({
+  key: 'rob_your_key_here',
+  fallbackToLocal: true
+});
+
+chromium.use(rockorbust);
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://api.ipify.org?format=json');
+  console.log(await page.content());
+  await browser.close();
+})();
+```
+
 ---
 
-## Choosing Your SDK
+## SDK Comparison
 
 | Feature | Native Plugin | Extra Plugin |
 | :--- | :--- | :--- |
 | **Best For** | High-performance, zero-dependency setups. | Modular setups with other "Extra" plugins. |
 | **Installation** | `@rockorbust/playwright-plugin` | `@rockorbust/extra-plugin` |
 | **Stealth** | **Built-in**: Native JS mocks for WebGL, UA, etc. | **External**: Use with `puppeteer-extra-plugin-stealth`. |
+| **Compatibility** | Playwright Only | Playwright-Extra & Puppeteer-Extra |
 | **Fallback Options** | VPS or Local Machine | VPS or Local Machine |
-| **Ecosystem** | Standalone | Puppeteer-Extra / Playwright-Extra |
 
 ---
 
-## Quick Start
-
-### 1. Start a Residential Node (Go CLI)
-Generate a key and start the node.
-
-```bash
-# Generate your unique ROB key
-rockorbust key generate
-
-# Start the residential node in the background
-rockorbust rock
-```
-
-### 2. Automate (Playwright)
-Install your preferred SDK:
-
-```bash
-npm install @rockorbust/playwright-plugin
-```
-
-```javascript
-const { chromium } = require('@rockorbust/playwright-plugin');
-
-(async () => {
-  const browser = await chromium.launch({
-    rockorbust: { key: process.env.ROB_KEY }
-  });
-  const page = await browser.newPage();
-  await page.goto('https://checkip.amazonaws.com');
-  await browser.close();
-})();
-```
-
-> [!TIP]
-> Use the **Extra Plugin** if you need to combine RockOrBust with other plugins like Adblockers or CAPTCHA solvers.
+## Smart Error Handling
+Both plugins feature **Reactive Error Diagnostics**. If a connection fails due to a lack of residential nodes, RockOrBust will identify the cause and provide a helpful troubleshooting tip directly in your console.
 
 ---
 

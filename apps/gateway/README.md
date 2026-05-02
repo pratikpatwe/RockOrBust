@@ -17,6 +17,8 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 | :--- | :--- | :--- | :--- |
 | `/`              | `GET`  | HTTP | Premium landing page and status dashboard. |
 | `/auth/register` | `POST` | HTTP | Generates a new unique `rob_` key (Rate limited: 1/hr). |
+| `/api/stats`    | `GET`  | HTTP | Returns global network health and total active nodes. |
+| `/api/stats/:keyId` | `GET` | HTTP | Returns active node count for a specific key. |
 | `/api/cli/latest`| `GET`  | HTTP | Returns the latest CLI version and OS-specific download URL. |
 | `/health`        | `GET`  | HTTP | Lightweight JSON status for automated monitoring. |
 | `/ws` | `Upgrade` | WebSocket | Primary tunnel entry for Residential CLI nodes. |
@@ -82,16 +84,27 @@ stream {
 
 ---
 
-## Configuration
-- **`PORT`**: The port the gateway will listen on (default: `8080`).
-- **`SUPABASE_URL`**: Your Supabase project URL.
-- **`SUPABASE_SERVICE_ROLE_KEY`**: Your Supabase service role key.
-
----
-
 ## Public API
 
-### Node Telemetry
+### Network Telemetry
+
+**`GET /api/stats/`**
+
+Returns real-time global metrics for the entire RockOrBust network.
+
+- **Architecture**: Powered by an O(1) atomic in-memory counter for zero-latency retrieval.
+- **Caching**: Includes `Cache-Control` headers (5s TTL) for edge-side performance.
+- **Rate Limit**: 10 requests per minute per IP.
+
+**Response:**
+```json
+{
+  "totalActiveNodes": 2847,
+  "status": "operational",
+  "timestamp": 1714650000
+}
+```
+
 **`GET /api/stats/:keyId`**
 
 Returns the real-time status and active node count for a specific ROB key.
@@ -106,6 +119,13 @@ Returns the real-time status and active node count for a specific ROB key.
   "status": "online"
 }
 ```
+
+---
+
+## Configuration
+- **`PORT`**: The port the gateway will listen on (default: `8080`).
+- **`SUPABASE_URL`**: Your Supabase project URL.
+- **`SUPABASE_SERVICE_ROLE_KEY`**: Your Supabase service role key.
 
 ---
 

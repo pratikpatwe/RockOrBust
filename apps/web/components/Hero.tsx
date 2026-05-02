@@ -60,7 +60,10 @@ export function Hero() {
               </a>
 
               {/* Mobile: Visualize Network | Desktop: Hidden */}
-              <button className="flex sm:hidden bg-[#FACC15] text-black font-bold uppercase px-6 py-2.5 hover:bg-[#EAB308] transition-colors w-full items-center justify-center gap-2 whitespace-nowrap border border-[#FACC15] text-sm tracking-wide">
+              <button 
+                onClick={() => document.getElementById('visualizer')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="flex sm:hidden bg-[#FACC15] text-black font-bold uppercase px-6 py-2.5 hover:bg-[#EAB308] transition-colors w-full items-center justify-center gap-2 whitespace-nowrap border border-[#FACC15] text-sm tracking-wide"
+              >
                 <HugeiconsIcon icon={CanvasIcon} size={16} strokeWidth={2.5} />
                 Visualize Network
               </button>
@@ -70,10 +73,13 @@ export function Hero() {
               </button>
               
               {/* Desktop: Visualize Network Link | Mobile: Hidden */}
-              <a href="#" className="hidden sm:flex items-center gap-2 text-sm text-[#A3A3A3] hover:text-[#FACC15] transition-colors sm:ml-2 whitespace-nowrap uppercase font-mono">
+              <button 
+                onClick={() => document.getElementById('visualizer')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="hidden sm:flex items-center gap-2 text-sm text-[#A3A3A3] hover:text-[#FACC15] transition-colors sm:ml-2 whitespace-nowrap uppercase font-mono bg-transparent border-none cursor-pointer"
+              >
                 Visualize Network
                 <HugeiconsIcon icon={CanvasIcon} size={14} strokeWidth={2.5} />
-              </a>
+              </button>
             </div>
 
             {/* Code Snippet Box */}

@@ -217,7 +217,10 @@ export function Header() {
             Download CLI
           </a>
 
-          <button className="flex items-center gap-2 bg-[#FACC15] text-black font-bold uppercase tracking-wide px-4 py-2 hover:bg-[#EAB308] transition-colors border border-[#FACC15] text-xs whitespace-nowrap shrink-0">
+          <button 
+            onClick={() => document.getElementById('visualizer')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="flex items-center gap-2 bg-[#FACC15] text-black font-bold uppercase tracking-wide px-4 py-2 hover:bg-[#EAB308] transition-colors border border-[#FACC15] text-xs whitespace-nowrap shrink-0"
+          >
             <HugeiconsIcon icon={CanvasIcon} size={14} strokeWidth={2.5} />
             Visualize Network
           </button>

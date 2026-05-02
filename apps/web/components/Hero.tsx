@@ -15,9 +15,17 @@ export function Hero() {
           <span className="w-2 h-2 bg-[#FACC15]"></span>
           Update
         </div>
-        <div className="bg-[#050505] px-4 py-2 h-full text-white flex items-center gap-2 hover:text-[#FACC15] transition-colors cursor-pointer border-r border-dashed border-[#333]">
-          <span>RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
-          <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={2} />
+        <div className="bg-[#050505] px-4 py-2 h-full text-white flex items-center gap-2 hover:text-[#FACC15] transition-colors cursor-pointer border-r border-dashed border-[#333] flex-1 min-w-0 overflow-hidden lg:flex-none lg:overflow-visible">
+          {/* Mobile Marquee Container */}
+          <div className="flex items-center lg:hidden overflow-hidden flex-1 relative">
+            <div className="flex animate-marquee whitespace-nowrap">
+              <span className="pr-8">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
+              <span className="pr-8">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
+            </div>
+          </div>
+          {/* Desktop Static Span (Exactly as before) */}
+          <span className="hidden lg:block whitespace-nowrap">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
+          <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={2} className="shrink-0" />
         </div>
       </div>
 
@@ -35,6 +43,7 @@ export function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-4 mb-10 w-full">
+              {/* Desktop: Download CLI | Mobile: Hidden */}
               <a 
                 href="#download-cli"
                 onClick={(e) => {
@@ -44,14 +53,23 @@ export function Hero() {
                     window.dispatchEvent(new CustomEvent('cli-scroll-finished'));
                   }, 800);
                 }}
-                className="bg-[#FACC15] text-black font-bold uppercase px-6 py-2.5 hover:bg-[#EAB308] transition-colors w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap border border-[#FACC15] text-sm tracking-wide"
+                className="hidden sm:flex bg-[#FACC15] text-black font-bold uppercase px-6 py-2.5 hover:bg-[#EAB308] transition-colors w-full sm:w-auto items-center justify-center gap-2 whitespace-nowrap border border-[#FACC15] text-sm tracking-wide"
               >
                 <HugeiconsIcon icon={Download01Icon} size={16} strokeWidth={2.5} />
                 Download CLI
               </a>
+
+              {/* Mobile: Visualize Network | Desktop: Hidden */}
+              <button className="flex sm:hidden bg-[#FACC15] text-black font-bold uppercase px-6 py-2.5 hover:bg-[#EAB308] transition-colors w-full items-center justify-center gap-2 whitespace-nowrap border border-[#FACC15] text-sm tracking-wide">
+                <HugeiconsIcon icon={CanvasIcon} size={16} strokeWidth={2.5} />
+                Visualize Network
+              </button>
+
               <button className="bg-transparent text-white font-medium px-6 py-2.5 border border-[#333] hover:bg-[#111] transition-colors w-full sm:w-auto text-center whitespace-nowrap uppercase tracking-wide text-sm">
                 Read Docs
               </button>
+              
+              {/* Desktop: Visualize Network Link | Mobile: Hidden */}
               <a href="#" className="hidden sm:flex items-center gap-2 text-sm text-[#A3A3A3] hover:text-[#FACC15] transition-colors sm:ml-2 whitespace-nowrap uppercase font-mono">
                 Visualize Network
                 <HugeiconsIcon icon={CanvasIcon} size={14} strokeWidth={2.5} />
@@ -66,8 +84,8 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right Cell: SVG Animation Space (The Brain) */}
-        <div className="flex-1 grid-cell-x py-16 flex flex-col justify-center items-center relative overflow-hidden bg-[#000]">
+        {/* Right Cell: SVG Animation Space (The Brain) - Hidden on Mobile */}
+        <div className="hidden lg:flex flex-1 grid-cell-x py-16 flex-col justify-center items-center relative overflow-hidden bg-[#000]">
           <div className="relative z-10 w-full max-w-lg flex items-center justify-center p-8">
             <Image 
               src="/Illustration.svg" 

@@ -139,7 +139,7 @@ export function Installation() {
                 disabled={isDownloading}
                 className="flex items-stretch bg-[#FACC15] text-black font-bold uppercase tracking-wide w-full sm:w-auto hover:opacity-90 transition-opacity border border-[#FACC15] relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="px-8 py-4 flex-1 text-center whitespace-nowrap">
+                <div className="px-4 sm:px-8 py-4 flex-1 text-center sm:whitespace-nowrap">
                   Download for {osName}
                 </div>
                 <div className="bg-black/10 px-5 flex items-center justify-center border-l border-black/20">

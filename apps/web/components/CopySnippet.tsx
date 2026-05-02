@@ -33,12 +33,14 @@ export function CopySnippet({ command, variant = "window" }: { command: string, 
   if (variant === "inline") {
     return (
       <div 
-        className="flex items-center gap-3 bg-[#050505] border border-[#333] px-5 py-2.5 w-fit text-sm font-mono text-[#A3A3A3] cursor-pointer group relative overflow-hidden transition-colors hover:border-[#555]"
+        className="flex items-center bg-[#050505] border border-[#333] px-5 py-2.5 w-fit max-w-full text-sm font-mono text-[#A3A3A3] cursor-pointer group relative transition-colors hover:border-[#555]"
         onClick={handleCopy}
       >
-        <span className="text-[#555] pointer-events-none">$</span> 
-        <span className="text-white pointer-events-none">{command}</span>
-        <button className="ml-4 text-[#A3A3A3] group-hover:text-[#FACC15] transition-colors cursor-pointer z-10 font-bold uppercase">
+        <div className="flex-1 overflow-x-auto scrollbar-hide whitespace-nowrap pr-4">
+          <span className="text-[#555] mr-3">$</span> 
+          <span className="text-white">{command}</span>
+        </div>
+        <button className="shrink-0 text-[#A3A3A3] group-hover:text-[#FACC15] transition-colors z-10 font-bold uppercase bg-[#050505] pl-2 border-l border-white/5 lg:border-none">
           {copied ? (
             <HugeiconsIcon icon={CopyCheckIcon} size={14} className="text-[#FACC15]" strokeWidth={2.5} />
           ) : (
@@ -71,12 +73,18 @@ export function CopySnippet({ command, variant = "window" }: { command: string, 
       <div className="flex items-center gap-2 mb-3 pb-3 border-b border-[#333]/50 pointer-events-none">
         <div className="flex gap-1.5"><div className="w-2 h-2 bg-[#333]"></div><div className="w-2 h-2 bg-[#333]"></div><div className="w-2 h-2 bg-[#333]"></div></div>
       </div>
-      <div className="flex items-center justify-between pointer-events-none">
-        <div>
+      <div className="flex items-center justify-between">
+        {/* Mobile: Scrolling Container | Desktop: Original Static Div */}
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-hide lg:hidden whitespace-nowrap pr-4 pointer-events-auto">
           <span className="text-[#555] mr-2">$</span>
           <span className="text-white">{command}</span>
         </div>
-        <button className="flex items-center gap-1.5 bg-[#111] text-[#A3A3A3] border border-[#333] px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-all group-hover:text-[#FACC15] group-hover:border-[#FACC15]/50 cursor-pointer z-10 pointer-events-auto font-bold uppercase">
+        <div className="hidden lg:block pointer-events-none">
+          <span className="text-[#555] mr-2">$</span>
+          <span className="text-white">{command}</span>
+        </div>
+        
+        <button className="shrink-0 flex items-center gap-1.5 bg-[#111] text-[#A3A3A3] border border-[#333] px-2 py-1 text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-all group-hover:text-[#FACC15] group-hover:border-[#FACC15]/50 cursor-pointer z-10 font-bold uppercase ml-2 pointer-events-auto">
           <HugeiconsIcon icon={copied ? CopyCheckIcon : CopyIcon} size={12} strokeWidth={2.5} />
           {copied ? "COPIED" : "COPY"}
         </button>

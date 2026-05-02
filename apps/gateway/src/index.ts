@@ -9,6 +9,7 @@ import { setupWebSocket } from './websocket';
 import { setupProxy } from './proxy';
 import { startUpdater } from './lib/updater';
 import { rateLimit } from 'express-rate-limit';
+import { supabase } from './lib/supabase';
 
 dotenv.config();
 
@@ -127,6 +128,28 @@ app.use('/auth', authRoutes);
 app.use('/api/cli', publicLimiter, cliRoutes);
 app.use('/api/stats', statsLimiter, statsRoutes);
 
+/**
+ * On every gateway boot, mark ALL previously-online nodes as offline.
+ * This reconciles Supabase with the empty in-memory nodeRegistry so that
+ * the stats API and routing are never in a split-brain state after a restart.
+ * Nodes that are actually still running will reconnect within ~30 seconds
+ * and register themselves again via the WebSocket handler.
+ */
+async function reconcileNodeState(): Promise<void> {
+  console.log('[boot] Reconciling stale node state in Supabase...');
+  const { error, count } = await supabase
+    .from('rob_nodes')
+    .update({ status: false })
+    .eq('status', true);
+
+  if (error) {
+    // Non-fatal: log and continue. Stale rows will self-correct on next connect/disconnect.
+    console.warn('[boot] Could not reconcile node state:', error.message);
+  } else {
+    console.log(`[boot] Marked ${count ?? 'unknown'} stale node(s) as offline.`);
+  }
+}
+
 const server = http.createServer(app);
 setupWebSocket(server);
 setupProxy(server);
@@ -134,6 +157,9 @@ setupProxy(server);
 // Start background tasks
 startUpdater();
 
-server.listen(port, () => {
-  console.log(`Rock or Bust Gateway listening on port ${port}`);
+// Reconcile stale DB state BEFORE accepting connections, then start listening.
+reconcileNodeState().finally(() => {
+  server.listen(port, () => {
+    console.log(`Rock or Bust Gateway listening on port ${port}`);
+  });
 });

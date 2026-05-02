@@ -14,15 +14,25 @@ class NodeRegistry {
     latency?: number; 
   }>> = new Map();
 
+  private totalNodes: number = 0;
+
   register(keyId: string, nodeId: string, hostname: string, ws: WebSocket) {
     if (!this.connections.has(keyId)) {
       this.connections.set(keyId, new Set());
     }
-    this.connections.get(keyId)?.add({ id: nodeId, ws, hostname, latency: 999 }); // Default to slow
+    const keyConnections = this.connections.get(keyId);
+    if (keyConnections) {
+      keyConnections.add({ id: nodeId, ws, hostname, latency: 999 });
+      this.totalNodes++;
+    }
   }
 
   getConnectionCount(keyId: string): number {
     return this.connections.get(keyId)?.size || 0;
+  }
+
+  getTotalCount(): number {
+    return this.totalNodes;
   }
 
   updateLatency(keyId: string, ws: WebSocket, ms: number) {
@@ -37,12 +47,12 @@ class NodeRegistry {
     }
   }
 
-  unregister(keyId: string, ws: WebSocket) {
     const keyConnections = this.connections.get(keyId);
     if (keyConnections) {
       for (const conn of keyConnections) {
         if (conn.ws === ws) {
           keyConnections.delete(conn);
+          this.totalNodes = Math.max(0, this.totalNodes - 1);
           break;
         }
       }

@@ -78,8 +78,37 @@ stream {
 
 ### 3. Protocol Selection
 - **API (Port 443/80)**: Use standard HTTPS for key generation and status checks.
-- **Proxy (Port 8080)**: Use raw `http://` (unencrypted) for the proxy server address. Encryption is handled at the tunnel level by the Browser/Gateway handshake.
+- **Proxy (Port 8080)**: Use raw `http://` (unencrypted) for the proxy server address. Encryption is handled at the tunnel level.
 
 ---
+
+## Configuration
+- **`PORT`**: The port the gateway will listen on (default: `8080`).
+- **`SUPABASE_URL`**: Your Supabase project URL.
+- **`SUPABASE_SERVICE_ROLE_KEY`**: Your Supabase service role key.
+
+---
+
+## Public API
+
+### Node Telemetry
+**`GET /api/stats/:keyId`**
+
+Returns the real-time status and active node count for a specific ROB key.
+
+**Path Parameters:**
+- `keyId`: Your unique RockOrBust key (e.g., `rob_ae1...`).
+
+**Response:**
+```json
+{
+  "activeNodes": 1,
+  "status": "online"
+}
+```
+
+---
+
+## License
 
 MIT © [BuildShot](https://buildshot.xyz)

@@ -24,6 +24,15 @@ const publicLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Stricter limiter for stats: 10 requests per minute
+const statsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Stats API rate limit exceeded. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -116,7 +125,7 @@ app.get('/health', publicLimiter, (req, res) => {
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api/cli', publicLimiter, cliRoutes);
-app.use('/api/stats', publicLimiter, statsRoutes);
+app.use('/api/stats', statsLimiter, statsRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);

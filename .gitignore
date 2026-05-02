@@ -44,3 +44,12 @@ build/
 logs/
 *.log
 test-plugin/
+
+# Next.js Web App
+apps/web/node_modules
+apps/web/.next
+apps/web/out
+apps/web/build
+apps/web/.env*
+apps/web/.vercel
+apps/web/next-env.d.ts

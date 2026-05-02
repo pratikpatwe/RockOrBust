@@ -34,15 +34,47 @@ async function fetchNpmDownloads(pkg: string): Promise<number | null> {
   }
 }
 
-// Simulated live node count – replace with real API when available
+// ---------- constants ----------
+const STATS_URL = 'https://robapi.buildshot.xyz/api/stats/';
+const CACHE_KEY = 'rob_live_stats';
+
 function useLiveNodeCount() {
-  const [count, setCount] = useState<number>(2847);
+  const [count, setCount] = useState<number>(0);
+
+  const fetchStats = async () => {
+    try {
+      // 1. Try to load from cache first for immediate UI feedback
+      const cachedStr = localStorage.getItem(CACHE_KEY);
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        setCount(cached.totalActiveNodes);
+        // If cached within the last 30 seconds, don't fetch from server yet
+        if (Date.now() - cached.timestamp < 30000) return;
+      }
+
+      const res = await fetch(STATS_URL);
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      if (typeof data.totalActiveNodes === 'number') {
+        setCount(data.totalActiveNodes);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          totalActiveNodes: data.totalActiveNodes,
+          timestamp: Date.now()
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch live stats:', e);
+    }
+  };
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCount((c) => c + Math.floor(Math.random() * 3 - 1));
-    }, 4000);
+    fetchStats();
+    // Poll every 30 seconds to stay under rate limits (10/min)
+    const timer = setInterval(fetchStats, 30000);
     return () => clearInterval(timer);
   }, []);
+
   return count;
 }
 

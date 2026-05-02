@@ -2,15 +2,54 @@ import {
   chromium as pwChromium, 
   firefox as pwFirefox, 
   webkit as pwWebkit,
-  Browser,
-  BrowserContext,
   BrowserType
 } from 'playwright';
-import { LaunchOptions, RockOrBustOptions } from './types';
+import http from 'http';
+import { LaunchOptions } from './types';
 import { STEALTH_SCRIPT } from './stealth';
 
 const DEFAULT_GATEWAY = 'http://robapi.buildshot.xyz:8080';
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+/**
+ * Helper to check node availability on the gateway.
+ */
+async function checkNodeAvailability(gatewayUrl: string, key: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const url = new URL(gatewayUrl);
+      const options = {
+        hostname: url.hostname,
+        port: url.port || (url.protocol === 'https:' ? 443 : 80),
+        path: `/api/stats/${key}`,
+        method: 'GET',
+        timeout: 2000
+      };
+
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(json.activeNodes > 0);
+          } catch (e) {
+            resolve(false);
+          }
+        });
+      });
+
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
+      req.end();
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}
 
 /**
  * Augments a Playwright BrowserType with RockOrBust residential proxying and stealth.
@@ -29,11 +68,20 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       key = process.env.ROB_KEY, 
       gatewayUrl = DEFAULT_GATEWAY, 
       stealth = true,
-      fallbackToVps = false
+      fallbackToVps = false,
+      fallbackToLocal = false
     } = rockorbust;
 
     if (!key || !key.startsWith('rob_')) {
       throw new Error('RockOrBust: A valid ROB key (rob_*) is required. Provide it in launch options or via ROB_KEY env var.');
+    }
+
+    // Handle Local Fallback
+    if (fallbackToLocal) {
+      const hasNodes = await checkNodeAvailability(gatewayUrl, key);
+      if (!hasNodes) {
+        return originalLaunch(pwOptions); // Skip all proxying and just launch natively
+      }
     }
 
     const proxyUsername = fallbackToVps ? `${key}:fallback` : key;

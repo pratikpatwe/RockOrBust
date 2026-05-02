@@ -30,6 +30,12 @@ export interface RockOrBustOptions {
    * - false: Fail the request with a 502 error (Default).
    */
   fallbackToVps?: boolean;
+
+  /**
+   * Whether to use the local machine IP if no residential nodes are available.
+   * If true, it bypasses the proxy entirely if the pool is empty.
+   */
+  fallbackToLocal?: boolean;
 }
 
 export type LaunchOptions = PlaywrightLaunchOptions & {

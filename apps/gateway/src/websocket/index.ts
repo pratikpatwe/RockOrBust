@@ -63,7 +63,7 @@ export function setupWebSocket(server: Server) {
     }
 
     const currentNodeId = nodeData.id;
-    nodeRegistry.register(keyId, currentNodeId, hostname, ws);
+    nodeRegistry.register(key, currentNodeId, hostname, ws);
     
     console.log(`Node connected: ${hostname} (${ipAddress}) for key ${key.substring(0, 10)}...`);
 
@@ -78,7 +78,7 @@ export function setupWebSocket(server: Server) {
       clearInterval(pingInterval);
       console.log(`Node disconnected: ${hostname}`);
 
-      nodeRegistry.unregister(keyId, ws);
+      nodeRegistry.unregister(key, ws);
 
       // Update status to offline in Supabase
       if (nodeData?.id) {
@@ -102,7 +102,7 @@ export function setupWebSocket(server: Server) {
         try {
           const msg = JSON.parse(messageStr);
           if (msg.type === 'latency' && typeof msg.ms === 'number') {
-            nodeRegistry.updateLatency(keyId, ws, msg.ms);
+            nodeRegistry.updateLatency(key, ws, msg.ms);
             return; // Handled
           }
         } catch (e) {

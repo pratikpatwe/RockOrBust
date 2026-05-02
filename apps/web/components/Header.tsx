@@ -147,7 +147,8 @@ export function Header() {
             {/* Nav Group */}
             <div className="flex items-center gap-2">
               <Link
-                href="#"
+                href="https://github.com/pratikpatwe/RockOrBust/blob/main/README.md"
+                target="_blank"
                 className="px-3 py-2 text-[#A3A3A3] hover:text-white transition-colors border border-transparent hover:border-[#333] hover:bg-[#111] uppercase tracking-wide text-xs whitespace-nowrap"
               >
                 Documentation

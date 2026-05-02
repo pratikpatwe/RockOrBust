@@ -1,6 +1,9 @@
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 
-export interface RockOrBustOptions {
+/**
+ * Configuration options for the RockOrBustExtraPlugin.
+ */
+interface RockOrBustOptions {
   /** The RockOrBust ROB key (starts with 'rob_'). */
   key?: string;
   /** The RockOrBust Gateway endpoint URL. */
@@ -18,7 +21,7 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * Provides automated residential proxy routing for Puppeteer and Playwright
  * via the RockOrBust decentralized gateway.
  */
-export class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
+class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   constructor(opts: RockOrBustOptions = {}) {
     super(opts);
   }
@@ -35,10 +38,6 @@ export class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     };
   }
 
-  /**
-   * Intercepts browser launch to configure global proxy settings and base flags.
-   * Supports launch(), launchPersistentContext(), and connect().
-   */
   async beforeLaunch(options: any) {
     const pluginOpts = (this as any).opts || {};
     const opts = { ...this.defaults, ...pluginOpts };
@@ -74,9 +73,6 @@ export class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     }
   }
 
-  /**
-   * Playwright-specific hook to ensure User-Agent persistence across new contexts.
-   */
   async beforeContext(options: any) {
     if (!options.userAgent) {
       (this as any).debug('Setting default User-Agent for new Playwright context');
@@ -84,9 +80,6 @@ export class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     }
   }
 
-  /**
-   * Puppeteer-specific hook to ensure User-Agent persistence across new pages.
-   */
   async onPageCreated(page: any) {
     if (page.setUserAgent) {
       await page.setUserAgent(DEFAULT_USER_AGENT);
@@ -94,4 +87,22 @@ export class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   }
 }
 
-export default (options?: RockOrBustOptions) => new RockOrBustExtraPlugin(options);
+/**
+ * Factory function for creating a new RockOrBustExtraPlugin instance.
+ */
+function rockorbust(options?: RockOrBustOptions) {
+  return new RockOrBustExtraPlugin(options);
+}
+
+/**
+ * Namespace merging to export types and classes alongside the factory function.
+ */
+namespace rockorbust {
+  export type Options = RockOrBustOptions;
+  export const Plugin = RockOrBustExtraPlugin;
+}
+
+// Support both require() and import syntax
+(rockorbust as any).default = rockorbust;
+
+export = rockorbust;

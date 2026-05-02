@@ -148,7 +148,6 @@ Both plugins feature **Reactive Error Diagnostics**. If a connection fails due t
 
 ## Documentation
 
-- [Live Dashboard](https://robapi.buildshot.xyz)
 - [Gateway Configuration](./apps/gateway/README.md)
 - [CLI User Guide](./apps/cli/README.md)
 - [Web App Details](./apps/web/README.md)

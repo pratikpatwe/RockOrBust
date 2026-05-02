@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/gateway",
+    "apps/web",
     "packages/playwright-plugin",
     "packages/extra-plugin"
   ],

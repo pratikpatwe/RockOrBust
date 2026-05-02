@@ -161,10 +161,28 @@ function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; 
 }
 
 /**
- * Validates the key and picks an online node from the registry.
- * Uses an in-memory cache to reduce Supabase round-trips.
+ * Validates the key against Supabase (with in-memory cache) and picks an
+ * online node from the registry. Cache TTL is 5 minutes to reduce DB load.
  */
 async function getActiveNodeForKey(keyString: string) {
-  // We use the keyString (rob_...) directly in the nodeRegistry for fast lookup
+  // 1. Fast path: key already validated recently
+  if (!keyCache.get(keyString)) {
+    // 2. Slow path: verify against Supabase
+    const { data, error } = await supabase
+      .from('rob_keys')
+      .select('id')
+      .eq('key_string', keyString)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !data) {
+      // Unknown or revoked key — do not route
+      return null;
+    }
+
+    // Cache the validated key for 5 minutes
+    keyCache.set(keyString, data.id);
+  }
+
   return nodeRegistry.getNextNode(keyString);
 }

@@ -1,104 +1,126 @@
 # RockOrBust
 
-**Industrial-grade residential proxy infrastructure for browser automation.**
+**The open-source decentralized residential proxy infrastructure for browser automation.**
 
-RockOrBust is a high-performance stealth network designed to help automated browsers bypass modern bot detection systems. By combining a private residential node pool with advanced browser fingerprinting spoofing, it allows your automation scripts to appear as legitimate human users.
-
----
-
-```mermaid
-graph TD
-    subgraph "Developer Environment"
-        A[Playwright Script] -- "@rockorbust/plugin" --> B[Automated Browser]
-    end
-
-    subgraph "RockOrBust Gateway"
-        B -- "Proxy Request (HTTP CONNECT)" --> C[Orchestration Layer]
-        C -- "Authentication & Rate Limiting" --> DB[(Supabase)]
-        C -- "Latency-Based Routing" --> D[Residential Pool]
-    end
-
-    subgraph "Residential Node (Go CLI)"
-        D -- "Secure WebSocket Tunnel" --> E[Residential Device]
-        E -- "Final Request (Home IP)" --> F[Target Website]
-    end
-
-    G[New User] -- "key generate" --> C
-```
-
----
-
-## 🔌 System Interfaces
-
-| Interface | Type | Usage |
-| :--- | :--- | :--- |
-| **Proxy Gateway** | `HTTP CONNECT` | Entry point for Playwright scripts and browser traffic. |
-| **Auth API** | `REST (JSON)` | Handles key generation and validation via `/auth/register`. |
-| **Node Tunnel** | `WebSocket` | Secure persistent tunnel for Residential CLI nodes. |
+RockOrBust is an industrial-grade, open-source stealth network designed to help automated browsers bypass advanced anti-bot systems. By leveraging a decentralized pool of residential nodes and sophisticated fingerprint masking, your automation scripts become indistinguishable from real human users.
 
 ---
 
 ## System Architecture
 
-The project consists of three integrated components:
+```mermaid
+graph TD
+    subgraph "1. Client Layer (SDKs)"
+        A1["@rockorbust/playwright-plugin"]
+        A2["@rockorbust/extra-plugin"]
+        A3["Standard Proxy Client"]
+    end
 
-1.  **[Gateway (apps/gateway)](./apps/gateway)**: A Node.js orchestration layer that manages authentication, node telemetry, and latency-based routing.
-2.  **[Residential CLI (apps/cli)](./apps/cli)**: A standalone Go executable that contributes residential connections to the proxy pool.
-3.  **[Playwright Plugin (packages/playwright-plugin)](./packages/playwright-plugin)**: A drop-in Playwright wrapper that automates stealth script injection and proxy configuration.
+    subgraph "2. Hub (Gateway)"
+        B["RockOrBust Gateway"]
+        B1["Auth & Key Validation (Supabase)"]
+        B2["Latency-Based Load Balancer"]
+        B --> B1
+        B --> B2
+    end
 
-## Key Capabilities
+    subgraph "3. Network Layer (Residential Nodes)"
+        C1["Go CLI (Windows)"]
+        C2["Go CLI (Linux)"]
+        C3["Go CLI (macOS)"]
+    end
 
-- **Residential IP Routing**: Route traffic through real home connections to avoid datacenter IP reputation flags.
-- **Latency-Based Selection**: The Gateway automatically prioritizes nodes with optimal response times for high-performance scraping.
-- **Advanced Fingerprint Deception**: Defeats advanced bot detection platforms (like Sannysoft) with deep JavaScript prototype faking (PluginArray/MimeType), Client Hints (userAgentData) mocking, and native Chromium flag manipulation.
-- **Native Browser Masking**: Strips HeadlessChrome User-Agents, hides WebDriver signatures via `--disable-blink-features=AutomationControlled`, and forces realistic physical display rendering (Hairline bypass).
-- **Transparent Integration**: Maintain your existing Playwright logic while gaining advanced stealth capabilities.
-- **Resilient Fallback**: Optional VPS failover ensures connectivity even when the residential pool is undersized.
+    A1 & A2 & A3 -- "HTTP CONNECT" --> B
+    B2 -- "Secure WebSocket Tunnel" --> C1 & C2 & C3
+    C1 & C2 & C3 -- "Final Request" --> D["Target Website"]
+```
 
-## Getting Started
+---
 
-### 1. Deploy the Gateway
-Host the gateway on a VPS or use the managed instance at `https://robapi.buildshot.xyz/`.
+## The Three Pillars
 
-### 2. Configure a Residential Node
-No account registration is required. Simply download the CLI and use the following commands:
+### 1. The Network (Go CLI)
+A high-performance standalone binary that contributes residential connections to the pool. 
+- **Privacy:** Traffic is encrypted and tunneled securely.
+- **Cross-Platform:** Native binaries for Windows, Linux, and macOS.
+- **Background Persistence:** Runs as a lightweight daemon with built-in autostart.
 
-| Command | Description |
-| :--- | :--- |
-| `rockorbust key generate` | Securely requests and saves a new unique access key from the gateway. |
-| `rockorbust key show` | Displays the current access key saved on the device. |
-| `rockorbust key set <key>` | Manually links your device to an existing `rob_` key. |
-| `rockorbust rock` | Launches the residential node as a background daemon. |
-| `rockorbust status` | Displays the current connection health and process ID. |
-| `rockorbust bust` | Gracefully terminates the background daemon. |
+### 2. The Hub (Gateway)
+The central orchestration layer that handles authentication and routing.
+- **Latency-Based Selection:** Automatically routes traffic through the fastest available node.
+- **IP Rotation:** Every request can hit a different residential IP.
+- **ROB Key Auth:** Simple, secure key-based authentication.
+
+### 3. The SDKs (Plugins)
+Drop-in libraries for Playwright and Puppeteer.
+- **Native Plugin:** Zero-dependency, all-in-one wrapper with built-in stealth scripts.
+- **Extra Plugin:** Modular plugin for the playwright-extra and puppeteer-extra ecosystem.
+
+---
+
+## Choosing Your SDK
+
+| Feature | Native Plugin | Extra Plugin |
+| :--- | :--- | :--- |
+| **Best For** | High-performance, zero-dependency setups. | Modular setups with other "Extra" plugins. |
+| **Installation** | `@rockorbust/playwright-plugin` | `@rockorbust/extra-plugin` |
+| **Stealth** | **Built-in**: Native JS mocks for WebGL, UA, etc. | **External**: Use with `puppeteer-extra-plugin-stealth`. |
+| **Ecosystem** | Standalone | Puppeteer-Extra / Playwright-Extra |
+
+---
+
+## Quick Start
+
+### 1. Start a Residential Node (Go CLI)
+Generate a key and start the node.
 
 ```bash
-# Example: Quick Start
+# Generate your unique ROB key
 rockorbust key generate
+
+# Start the residential node in the background
 rockorbust rock
 ```
 
-### 3. Integrate with Playwright
-Install the plugin in your project:
+### 2. Automate (Playwright)
+Install your preferred SDK:
+
 ```bash
 npm install @rockorbust/playwright-plugin
 ```
 
-```typescript
-import { chromium } from '@rockorbust/playwright-plugin';
+```javascript
+const { chromium } = require('@rockorbust/playwright-plugin');
 
-const browser = await chromium.launch({
-  rockorbust: { 
-    key: process.env.ROB_KEY 
-  }
-});
+(async () => {
+  const browser = await chromium.launch({
+    rockorbust: { key: process.env.ROB_KEY }
+  });
+  const page = await browser.newPage();
+  await page.goto('https://checkip.amazonaws.com');
+  await browser.close();
+})();
 ```
+
+> [!TIP]
+> Use the **Extra Plugin** if you need to combine RockOrBust with other plugins like Adblockers or CAPTCHA solvers.
+
+---
+
+## Project Structure
+
+- **`apps/gateway`**: The Node.js hub for routing and auth.
+- **`apps/cli`**: The Go-based residential node client.
+- **`packages/playwright-plugin`**: The native Playwright wrapper.
+- **`packages/extra-plugin`**: The modular Puppeteer/Playwright-Extra plugin.
+
+---
 
 ## Documentation
 
-- **[Gateway Configuration](./apps/gateway/README.md)**
-- **[CLI User Guide](./apps/cli/README.md)**
-- **[Playwright Plugin Documentation](./packages/playwright-plugin/README.md)**
+- [Gateway Configuration](./apps/gateway/README.md)
+- [CLI User Guide](./apps/cli/README.md)
+- [SDK Reference](./packages/playwright-plugin/README.md)
 
 ---
 

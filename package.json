@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/gateway",
-    "packages/playwright-plugin"
+    "packages/playwright-plugin",
+    "packages/extra-plugin"
   ],
   "scripts": {
     "gateway:dev": "npm run dev -w gateway",

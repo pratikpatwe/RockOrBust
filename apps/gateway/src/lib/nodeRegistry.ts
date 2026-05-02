@@ -1,28 +1,50 @@
 import { WebSocket } from 'ws';
+import geoip from 'geoip-lite';
 
 /**
  * NodeRegistry tracks the actual active WebSocket connections in memory.
  * This is used to route proxy requests to the correct Go CLI node.
  */
+interface NodeConnection {
+  id: string;
+  ws: WebSocket;
+  hostname: string;
+  lastFail?: number;
+  latency?: number;
+  location?: {
+    country: string;
+    city: string;
+    ll: [number, number];
+  };
+}
+
 class NodeRegistry {
   // Map of KeyID -> Array of active WebSocket connections
-  private connections: Map<string, Set<{ 
-    id: string; 
-    ws: WebSocket; 
-    hostname: string; 
-    lastFail?: number;
-    latency?: number; 
-  }>> = new Map();
+  private connections: Map<string, Set<NodeConnection>> = new Map();
 
   private totalNodes: number = 0;
 
-  register(keyId: string, nodeId: string, hostname: string, ws: WebSocket) {
+  register(keyId: string, nodeId: string, hostname: string, ws: WebSocket, ipAddress: string) {
     if (!this.connections.has(keyId)) {
       this.connections.set(keyId, new Set());
     }
     const keyConnections = this.connections.get(keyId);
     if (keyConnections) {
-      keyConnections.add({ id: nodeId, ws, hostname, latency: 999 });
+      // Perform Geo-IP lookup
+      const geo = geoip.lookup(ipAddress);
+      const location = geo ? {
+        country: geo.country,
+        city: geo.city,
+        ll: geo.ll
+      } : undefined;
+
+      keyConnections.add({ 
+        id: nodeId, 
+        ws, 
+        hostname, 
+        latency: 999,
+        location 
+      });
       this.totalNodes++;
     }
   }
@@ -33,6 +55,42 @@ class NodeRegistry {
 
   getTotalCount(): number {
     return this.totalNodes;
+  }
+
+  /**
+   * Returns a sampled array of all active node locations across the entire network.
+   * Useful for the landing page visualizer global state.
+   */
+  getGlobalSnapshots(limit: number = 100): any[] {
+    const snapshots: any[] = [];
+    for (const [_, keyConnections] of this.connections) {
+      for (const conn of keyConnections) {
+        if (conn.location) {
+          snapshots.push({
+            id: conn.id.substring(0, 4), // Anonymized
+            latency: conn.latency,
+            location: conn.location
+          });
+        }
+        if (snapshots.length >= limit) return snapshots;
+      }
+    }
+    return snapshots;
+  }
+
+  /**
+   * Returns detailed node snapshots for a specific key.
+   */
+  getKeySnapshots(keyId: string): any[] {
+    const keyConnections = this.connections.get(keyId);
+    if (!keyConnections) return [];
+
+    return Array.from(keyConnections).map(conn => ({
+      id: conn.id.substring(0, 4),
+      latency: conn.latency,
+      location: conn.location,
+      tier: (conn.latency || 999) < 150 ? 'fast' : (conn.latency || 999) < 450 ? 'medium' : 'slow'
+    }));
   }
 
   updateLatency(keyId: string, ws: WebSocket, ms: number) {

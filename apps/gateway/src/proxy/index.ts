@@ -165,28 +165,6 @@ function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; 
  * Uses an in-memory cache to reduce Supabase round-trips.
  */
 async function getActiveNodeForKey(keyString: string) {
-  // Check in-memory cache first
-  let keyId = keyCache.get(keyString);
-
-  if (!keyId) {
-    // 1. Verify key in Supabase
-    const { data: keyData } = await supabase
-      .from('rob_keys')
-      .select('id')
-      .eq('key_string', keyString)
-      .eq('status', 'active')
-      .single();
-
-    if (!keyData) {
-      // If no result from Supabase, ensure it's not in cache
-      keyCache.invalidate(keyString);
-      return null;
-    }
-
-    keyId = keyData.id;
-    keyCache.set(keyString, keyId as string);
-  }
-
-  // 2. Get next available node from registry
-  return nodeRegistry.getNextNode(keyId as string);
+  // We use the keyString (rob_...) directly in the nodeRegistry for fast lookup
+  return nodeRegistry.getNextNode(keyString);
 }

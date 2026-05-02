@@ -10,7 +10,11 @@ import { LaunchOptions, RockOrBustOptions } from './types';
 import { STEALTH_SCRIPT } from './stealth';
 
 const DEFAULT_GATEWAY = 'http://robapi.buildshot.xyz:8080';
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
+/**
+ * Augments a Playwright BrowserType with RockOrBust residential proxying and stealth.
+ */
 function wrapBrowserType<T extends BrowserType>(browserType: T): T {
   const originalLaunch = browserType.launch.bind(browserType);
 
@@ -29,13 +33,12 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
     } = rockorbust;
 
     if (!key || !key.startsWith('rob_')) {
-      throw new Error('RockOrBust: A valid API key starting with "rob_" is required. Please provide it in the launch options or set the ROB_KEY environment variable.');
+      throw new Error('RockOrBust: A valid ROB key (rob_*) is required. Provide it in launch options or via ROB_KEY env var.');
     }
 
-    // Format proxy username: "rob_key:fallback" or just "rob_key"
     const proxyUsername = fallbackToVps ? `${key}:fallback` : key;
 
-    // Configure Proxy
+    // Configure Proxy Gateway
     pwOptions.proxy = {
       server: gatewayUrl,
       username: proxyUsername,
@@ -43,7 +46,7 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       ...pwOptions.proxy
     };
 
-    // Advanced Launch Args for Stealth (WebDriver Flag and Hairline Rendering)
+    // Apply Stealth Launch Arguments
     if (stealth) {
       pwOptions.args = [
         ...(pwOptions.args || []),
@@ -56,20 +59,17 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
 
     const browser = await originalLaunch(pwOptions);
 
-    // Patch new contexts to include stealth scripts
+    // Patch BrowserContext to inject stealth scripts and mask User-Agent
     if (stealth) {
       const originalNewContext = browser.newContext.bind(browser);
       browser.newContext = async (contextOptions = {}) => {
-        // Enforce a realistic Windows User-Agent if none is provided to strip 'HeadlessChrome'
         if (!contextOptions.userAgent) {
-          contextOptions.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+          contextOptions.userAgent = DEFAULT_USER_AGENT;
         }
         const context = await originalNewContext(contextOptions);
         await context.addInitScript(STEALTH_SCRIPT);
         return context;
       };
-
-      // Also patch the default page if launchPersistentContext is used (handled separately if needed)
     }
 
     return browser;

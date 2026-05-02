@@ -20,8 +20,10 @@ graph TD
         B["RockOrBust Gateway"]
         B1["Auth & Key Validation (Supabase)"]
         B2["Latency-Based Load Balancer"]
+        B3["Public Dashboard (Web App)"]
         B --> B1
         B --> B2
+        B --> B3
     end
 
     subgraph "3. Network Layer (Residential Nodes)"
@@ -37,7 +39,7 @@ graph TD
 
 ---
 
-## The Three Pillars
+## The Four Pillars
 
 ### 1. The Network (Go CLI)
 A high-performance standalone binary that contributes residential connections to the pool. 
@@ -49,10 +51,16 @@ A high-performance standalone binary that contributes residential connections to
 The central orchestration layer that handles authentication and routing.
 - **Latency-Based Selection:** Automatically routes traffic through the fastest available node.
 - **IP Rotation:** Every request can hit a different residential IP.
-- **Reputation Protection:** Optional local fallback to protect your Gateway's VPS IP.
 - **ROB Key Auth:** Simple, secure key-based authentication.
+- **Global Telemetry:** Exposes real-time network health via a high-performance stats API.
 
-### 3. The SDKs (Plugins)
+### 3. The Dashboard (Web)
+A premium, brutalist-designed landing page and monitoring interface.
+- **Live Monitoring:** Real-time visibility into active global nodes.
+- **Unified Installation:** One-click downloads and clear usage examples.
+- **Network Visualization:** Visual feedback of the decentralized pool status.
+
+### 4. The SDKs (Plugins)
 Drop-in libraries for Playwright and Puppeteer.
 - **Native Plugin:** Zero-dependency, all-in-one wrapper with built-in stealth scripts.
 - **Extra Plugin:** Modular plugin for the playwright-extra and puppeteer-extra ecosystem.
@@ -132,6 +140,7 @@ Both plugins feature **Reactive Error Diagnostics**. If a connection fails due t
 
 - **`apps/gateway`**: The Node.js hub for routing and auth.
 - **`apps/cli`**: The Go-based residential node client.
+- **`apps/web`**: The premium landing page and live network dashboard.
 - **`packages/playwright-plugin`**: The native Playwright wrapper.
 - **`packages/extra-plugin`**: The modular Puppeteer/Playwright-Extra plugin.
 
@@ -139,8 +148,10 @@ Both plugins feature **Reactive Error Diagnostics**. If a connection fails due t
 
 ## Documentation
 
+- [Live Dashboard](https://robapi.buildshot.xyz)
 - [Gateway Configuration](./apps/gateway/README.md)
 - [CLI User Guide](./apps/cli/README.md)
+- [Web App Details](./apps/web/README.md)
 - [SDK Reference](./packages/playwright-plugin/README.md)
 
 ---

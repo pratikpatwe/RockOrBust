@@ -22,6 +22,9 @@ type ProxyDispatcher interface {
 	// HandleP2PMessage processes a raw JSON message from a P2P DataChannel.
 	// The sender function is used to send response data back over the DataChannel.
 	HandleP2PMessage(raw []byte, sender func(data []byte) error)
+
+	// HandleBinaryP2PMessage processes a binary frame from a P2P DataChannel.
+	HandleBinaryP2PMessage(raw []byte, sender func(data []byte) error)
 }
 
 // NewBridge creates a Bridge that connects P2P sessions to the proxy handler.
@@ -40,7 +43,13 @@ func (b *Bridge) OnDataChannelMessage(session *Session, data []byte) {
 		return b.sessions.SendMessage(session.ID, responseData)
 	}
 
-	b.proxyHandler.HandleP2PMessage(data, sender)
+	if len(data) > 0 && data[0] == '{' {
+		// Legacy JSON protocol
+		b.proxyHandler.HandleP2PMessage(data, sender)
+	} else {
+		// New high-efficiency binary protocol
+		b.proxyHandler.HandleBinaryP2PMessage(data, sender)
+	}
 }
 
 // HandleSignalingOffer is the top-level handler called from the WebSocket client

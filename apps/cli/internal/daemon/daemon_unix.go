@@ -26,3 +26,12 @@ func stopGracefully(pid int) error {
 	}
 	return process.Signal(syscall.SIGTERM)
 }
+
+// forceKill sends SIGKILL to the process.
+func forceKill(pid int) error {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	return process.Signal(syscall.SIGKILL)
+}

@@ -44,12 +44,14 @@ router.post('/:keyId', async (req, res) => {
   const { sessionId, promise } = signalingManager.createSession();
 
   // 4. Forward Offer to Node via WebSocket
+  const iceServers = getIceConfig();
   try {
     node.ws.send(JSON.stringify({
       type: 'SIGNALING_OFFER',
       sessionId,
       sdp,
-      candidates
+      candidates,
+      iceServers
     }));
   } catch (err) {
     return res.status(500).json({ error: 'Failed to send signaling offer to node' });

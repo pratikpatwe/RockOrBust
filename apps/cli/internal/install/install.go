@@ -74,6 +74,15 @@ func copyFile(src, dst string) error {
 	}
 	defer source.Close()
 
+	// If destination exists, try to rename it first to avoid ETXTBSY on Linux
+	if _, err := os.Stat(dst); err == nil {
+		oldDst := dst + ".old"
+		_ = os.Remove(oldDst) // ignore error if doesn't exist
+		if err := os.Rename(dst, oldDst); err != nil {
+			return fmt.Errorf("failed to rename existing binary: %w", err)
+		}
+	}
+
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -96,17 +105,19 @@ func addToPath(dir string) error {
 }
 
 func addToPathWindows(dir string) error {
-	path := os.Getenv("PATH")
-	if strings.Contains(path, dir) {
-		return nil
-	}
+	// Use PowerShell to safely update the User PATH without the 1024 char limit of setx
+	// and to ensure we don't add duplicate entries.
+	psScript := fmt.Sprintf(`
+		$oldPath = [Environment]::GetEnvironmentVariable("Path", "User")
+		if ($oldPath -split ';' -notcontains '%s') {
+			$newPath = "$oldPath;%s"
+			[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+		}
+	`, dir, dir)
 
-	// Use setx to permanently update the User PATH
-	// Note: setx appends to the variable, but we should be careful not to exceed limits
-	// For simplicity and safety, we just use setx
-	cmd := exec.Command("setx", "PATH", path+";"+dir)
+	cmd := exec.Command("powershell", "-Command", psScript)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to run setx: %w", err)
+		return fmt.Errorf("failed to update PATH via PowerShell: %w", err)
 	}
 	return nil
 }
@@ -115,22 +126,29 @@ func addToPathUnix(dir string) error {
 	home, _ := os.UserHomeDir()
 	shellFiles := []string{".zshrc", ".bashrc", ".profile", ".bash_profile"}
 	
-	line := fmt.Sprintf("\nexport PATH=\"%s:$PATH\"\n", dir)
+	exportLine := fmt.Sprintf("export PATH=\"%s:$PATH\"", dir)
 	
-	path := os.Getenv("PATH")
-	if strings.Contains(path, dir) {
-		return nil
-	}
-
 	updated := false
 	for _, file := range shellFiles {
 		filePath := filepath.Join(home, file)
 		if _, err := os.Stat(filePath); err == nil {
+			// Read file content to check for existing entry
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+			
+			if strings.Contains(string(content), dir) {
+				ui.Info("RockOrBust already in %s", file)
+				updated = true
+				continue
+			}
+
 			f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0644)
 			if err != nil {
 				continue
 			}
-			if _, err := f.WriteString(line); err == nil {
+			if _, err := f.WriteString("\n" + exportLine + "\n"); err == nil {
 				ui.Info("Updated %s", file)
 				updated = true
 			}

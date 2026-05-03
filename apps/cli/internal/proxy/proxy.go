@@ -12,68 +12,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	ws "github.com/pratikpatwe/RockOrBust/cli/internal/ws"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/protocol"
 )
-
-// --- Incoming message types (Gateway → CLI) ---
-
-type incomingMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-}
-
-type httpRequestMessage struct {
-	Type    string            `json:"type"`
-	ID      string            `json:"id"`
-	Method  string            `json:"method"`
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Body    *string           `json:"body"` // base64 encoded, nullable
-}
-
-type connectRequestMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-	URL  string `json:"url"` // e.g. "google.com:443"
-}
-
-type connectDataMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-	Data string `json:"data"` // base64 encoded
-}
-
-type connectCloseMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-}
-
-// --- Outgoing message types (CLI → Gateway) ---
-
-type httpResponseMessage struct {
-	Type    string            `json:"type"`
-	ID      string            `json:"id"`
-	Status  int               `json:"status"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"` // base64 encoded
-}
-
-type connectEstablishedMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-}
-
-type connectDataOutMessage struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
-	Data string `json:"data"` // base64 encoded
-}
-
-type errorMessage struct {
-	Type    string `json:"type"`
-	ID      string `json:"id"`
-	Message string `json:"message"`
-}
 
 // --- Handler ---
 
@@ -103,38 +43,43 @@ func NewHandler() *Handler {
 // Handle is the MessageHandler signature expected by ws.NewClient.
 // It parses the message type and dispatches to the appropriate handler.
 func (h *Handler) Handle(conn *websocket.Conn, raw []byte) {
-	var base incomingMessage
+	var base protocol.BaseMessage
 	if err := json.Unmarshal(raw, &base); err != nil {
 		log.Printf("[proxy] failed to parse message: %v", err)
 		return
 	}
 
+	// Create a sender that writes responses over the WebSocket
+	sender := func(data []byte) error {
+		return conn.WriteMessage(websocket.TextMessage, data)
+	}
+
 	switch base.Type {
 	case "HTTP_REQUEST":
-		var msg httpRequestMessage
+		var msg protocol.HTTPRequestMessage
 		if err := json.Unmarshal(raw, &msg); err != nil {
-			h.sendError(conn, base.ID, "failed to parse HTTP_REQUEST")
+			h.sendErrorWith(sender, base.ID, "failed to parse HTTP_REQUEST")
 			return
 		}
-		go h.handleHTTPRequest(conn, msg)
+		go h.handleHTTPRequest(sender, msg)
 
 	case "CONNECT_REQUEST":
-		var msg connectRequestMessage
+		var msg protocol.ConnectRequestMessage
 		if err := json.Unmarshal(raw, &msg); err != nil {
-			h.sendError(conn, base.ID, "failed to parse CONNECT_REQUEST")
+			h.sendErrorWith(sender, base.ID, "failed to parse CONNECT_REQUEST")
 			return
 		}
-		go h.handleConnectRequest(conn, msg)
+		go h.handleConnectRequest(sender, msg)
 
 	case "CONNECT_DATA":
-		var msg connectDataMessage
+		var msg protocol.ConnectDataMessage
 		if err := json.Unmarshal(raw, &msg); err != nil {
 			return
 		}
 		h.handleConnectData(msg)
 
 	case "CONNECT_CLOSE":
-		var msg connectCloseMessage
+		var msg protocol.ConnectCloseMessage
 		if err := json.Unmarshal(raw, &msg); err != nil {
 			return
 		}
@@ -145,13 +90,59 @@ func (h *Handler) Handle(conn *websocket.Conn, raw []byte) {
 	}
 }
 
-// handleHTTPRequest performs a real HTTP request on behalf of the gateway.
-func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage) {
+// HandleP2PMessage implements the p2p.ProxyDispatcher interface.
+// It processes messages arriving over a WebRTC DataChannel using
+// the exact same proxy logic as the WebSocket path.
+func (h *Handler) HandleP2PMessage(raw []byte, sender func(data []byte) error) {
+	var base protocol.BaseMessage
+	if err := json.Unmarshal(raw, &base); err != nil {
+		log.Printf("[proxy/p2p] failed to parse message: %v", err)
+		return
+	}
+
+	switch base.Type {
+	case "HTTP_REQUEST":
+		var msg protocol.HTTPRequestMessage
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			h.sendErrorWith(sender, base.ID, "failed to parse HTTP_REQUEST")
+			return
+		}
+		go h.handleHTTPRequest(sender, msg)
+
+	case "CONNECT_REQUEST":
+		var msg protocol.ConnectRequestMessage
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			h.sendErrorWith(sender, base.ID, "failed to parse CONNECT_REQUEST")
+			return
+		}
+		go h.handleConnectRequest(sender, msg)
+
+	case "CONNECT_DATA":
+		var msg protocol.ConnectDataMessage
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			return
+		}
+		h.handleConnectData(msg)
+
+	case "CONNECT_CLOSE":
+		var msg protocol.ConnectCloseMessage
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			return
+		}
+		h.handleConnectClose(msg.ID)
+
+	default:
+		log.Printf("[proxy/p2p] unknown message type: %s", base.Type)
+	}
+}
+
+// handleHTTPRequest performs a real HTTP request on behalf of the gateway or SDK.
+func (h *Handler) handleHTTPRequest(sender func([]byte) error, msg protocol.HTTPRequestMessage) {
 	var bodyReader io.Reader
 	if msg.Body != nil {
 		decoded, err := base64.StdEncoding.DecodeString(*msg.Body)
 		if err != nil {
-			h.sendError(conn, msg.ID, "failed to decode request body")
+			h.sendErrorWith(sender, msg.ID, "failed to decode request body")
 			return
 		}
 		bodyReader = bytes.NewReader(decoded)
@@ -159,7 +150,7 @@ func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage
 
 	req, err := http.NewRequest(msg.Method, msg.URL, bodyReader)
 	if err != nil {
-		h.sendError(conn, msg.ID, "failed to build HTTP request: "+err.Error())
+		h.sendErrorWith(sender, msg.ID, "failed to build HTTP request: "+err.Error())
 		return
 	}
 
@@ -170,14 +161,14 @@ func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		h.sendError(conn, msg.ID, "HTTP request failed: "+err.Error())
+		h.sendErrorWith(sender, msg.ID, "HTTP request failed: "+err.Error())
 		return
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		h.sendError(conn, msg.ID, "failed to read response body: "+err.Error())
+		h.sendErrorWith(sender, msg.ID, "failed to read response body: "+err.Error())
 		return
 	}
 
@@ -189,7 +180,7 @@ func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage
 		}
 	}
 
-	reply := httpResponseMessage{
+	reply := protocol.HTTPResponseMessage{
 		Type:    "HTTP_RESPONSE",
 		ID:      msg.ID,
 		Status:  resp.StatusCode,
@@ -197,16 +188,22 @@ func (h *Handler) handleHTTPRequest(conn *websocket.Conn, msg httpRequestMessage
 		Body:    base64.StdEncoding.EncodeToString(respBody),
 	}
 
-	if err := ws.SendMessage(conn, reply); err != nil {
+	data, err := json.Marshal(reply)
+	if err != nil {
+		log.Printf("[proxy] failed to serialize HTTP_RESPONSE: %v", err)
+		return
+	}
+
+	if err := sender(data); err != nil {
 		log.Printf("[proxy] failed to send HTTP_RESPONSE: %v", err)
 	}
 }
 
-// handleConnectRequest opens a raw TCP connection and signals the gateway.
-func (h *Handler) handleConnectRequest(conn *websocket.Conn, msg connectRequestMessage) {
+// handleConnectRequest opens a raw TCP connection and signals the caller.
+func (h *Handler) handleConnectRequest(sender func([]byte) error, msg protocol.ConnectRequestMessage) {
 	tcpConn, err := net.DialTimeout("tcp", msg.URL, 10*time.Second)
 	if err != nil {
-		h.sendError(conn, msg.ID, "failed to connect to "+msg.URL+": "+err.Error())
+		h.sendErrorWith(sender, msg.ID, "failed to connect to "+msg.URL+": "+err.Error())
 		return
 	}
 
@@ -214,31 +211,35 @@ func (h *Handler) handleConnectRequest(conn *websocket.Conn, msg connectRequestM
 	h.tunnels[msg.ID] = tcpConn
 	h.mu.Unlock()
 
-	// Tell the gateway the tunnel is open
-	established := connectEstablishedMessage{Type: "CONNECT_ESTABLISHED", ID: msg.ID}
-	if err := ws.SendMessage(conn, established); err != nil {
+	// Tell the caller the tunnel is open
+	established := protocol.ConnectEstablishedMessage{Type: "CONNECT_ESTABLISHED", ID: msg.ID}
+	data, _ := json.Marshal(established)
+	if err := sender(data); err != nil {
 		log.Printf("[proxy] failed to send CONNECT_ESTABLISHED: %v", err)
 		tcpConn.Close()
 		return
 	}
 
-	// Forward any data coming back FROM the target server TO the gateway
+	// Forward any data coming back FROM the target server TO the caller
 	go func() {
 		defer func() {
 			h.handleConnectClose(msg.ID)
-			ws.SendMessage(conn, connectDataOutMessage{Type: "CONNECT_CLOSE", ID: msg.ID})
+			closeMsg := protocol.ConnectDataOutMessage{Type: "CONNECT_CLOSE", ID: msg.ID}
+			closeData, _ := json.Marshal(closeMsg)
+			sender(closeData)
 		}()
 
 		buf := make([]byte, 32*1024)
 		for {
 			n, err := tcpConn.Read(buf)
 			if n > 0 {
-				data := base64.StdEncoding.EncodeToString(buf[:n])
-				ws.SendMessage(conn, connectDataOutMessage{
+				outMsg := protocol.ConnectDataOutMessage{
 					Type: "CONNECT_DATA",
 					ID:   msg.ID,
-					Data: data,
-				})
+					Data: base64.StdEncoding.EncodeToString(buf[:n]),
+				}
+				outData, _ := json.Marshal(outMsg)
+				sender(outData)
 			}
 			if err != nil {
 				return
@@ -247,8 +248,8 @@ func (h *Handler) handleConnectRequest(conn *websocket.Conn, msg connectRequestM
 	}()
 }
 
-// handleConnectData forwards raw data from the gateway through the open TCP tunnel.
-func (h *Handler) handleConnectData(msg connectDataMessage) {
+// handleConnectData forwards raw data from the caller through the open TCP tunnel.
+func (h *Handler) handleConnectData(msg protocol.ConnectDataMessage) {
 	h.mu.Lock()
 	tcpConn, ok := h.tunnels[msg.ID]
 	h.mu.Unlock()
@@ -283,14 +284,16 @@ func (h *Handler) handleConnectClose(id string) {
 	}
 }
 
-// sendError sends an ERROR message back to the gateway.
-func (h *Handler) sendError(conn *websocket.Conn, id, message string) {
+// sendErrorWith sends an ERROR message using the provided sender function.
+func (h *Handler) sendErrorWith(sender func([]byte) error, id, message string) {
 	log.Printf("[proxy] error for request %s: %s", id, message)
-	ws.SendMessage(conn, errorMessage{
+	errMsg := protocol.ErrorMessage{
 		Type:    "ERROR",
 		ID:      id,
 		Message: message,
-	})
+	}
+	data, _ := json.Marshal(errMsg)
+	sender(data)
 }
 
 

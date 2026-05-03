@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/protocol"
 )
 
 const (
@@ -25,13 +26,25 @@ const (
 // It is called in a goroutine for every message received.
 type MessageHandler func(conn *websocket.Conn, raw []byte)
 
+// SignalingHandler processes WebRTC signaling messages from the Gateway.
+// It receives a SIGNALING_OFFER and must return a SIGNALING_ANSWER.
+type SignalingHandler func(offer protocol.SignalingOfferMessage) (*protocol.SignalingAnswerMessage, error)
+
 // Client manages the WebSocket connection to the gateway.
 type Client struct {
-	gatewayURL string
-	key        string
-	hostname   string
-	handler    MessageHandler
-	quit       chan struct{}
+	gatewayURL        string
+	key               string
+	hostname          string
+	handler           MessageHandler
+	signalingHandler  SignalingHandler
+	quit              chan struct{}
+}
+
+// SetSignalingHandler registers the P2P signaling handler.
+// When the Gateway sends a SIGNALING_OFFER, this handler is called
+// and the answer is sent back automatically.
+func (c *Client) SetSignalingHandler(h SignalingHandler) {
+	c.signalingHandler = h
 }
 
 // NewClient creates a new WebSocket client.
@@ -173,6 +186,11 @@ func (c *Client) readLoop(conn *websocket.Conn) {
 			return
 		}
 
+		// Check if this is a signaling message for P2P
+		if c.signalingHandler != nil && c.tryHandleSignaling(conn, raw) {
+			continue
+		}
+
 		// Dispatch each message in its own goroutine so one slow
 		// request doesn't block the entire read loop.
 		go c.handler(conn, raw)
@@ -221,4 +239,37 @@ func (c *Client) reportLatency(conn *websocket.Conn) {
 			return
 		}
 	}
+}
+
+// tryHandleSignaling checks if a message is a SIGNALING_OFFER and handles it.
+// Returns true if the message was handled as a signaling message.
+func (c *Client) tryHandleSignaling(conn *websocket.Conn, raw []byte) bool {
+	var base protocol.BaseMessage
+	if err := json.Unmarshal(raw, &base); err != nil {
+		return false
+	}
+
+	if base.Type != "SIGNALING_OFFER" {
+		return false
+	}
+
+	var offer protocol.SignalingOfferMessage
+	if err := json.Unmarshal(raw, &offer); err != nil {
+		log.Printf("[ws] failed to parse SIGNALING_OFFER: %v", err)
+		return true // consumed but errored
+	}
+
+	go func() {
+		log.Printf("[ws] received SIGNALING_OFFER for session %s", offer.SessionID)
+		answer, err := c.signalingHandler(offer)
+		if err != nil {
+			log.Printf("[ws] failed to handle signaling offer: %v", err)
+			return
+		}
+		if err := SendMessage(conn, answer); err != nil {
+			log.Printf("[ws] failed to send SIGNALING_ANSWER: %v", err)
+		}
+	}()
+
+	return true
 }

@@ -11,10 +11,12 @@ import (
 	"github.com/pratikpatwe/RockOrBust/cli/internal/config"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/daemon"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/install"
+	"github.com/pratikpatwe/RockOrBust/cli/internal/p2p"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/proxy"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/ui"
 	ws "github.com/pratikpatwe/RockOrBust/cli/internal/ws"
 )
+
 
 func main() {
 	// 1. Internal check for daemon mode. We do this manually to avoid 
@@ -104,6 +106,14 @@ func runDaemon(gatewayURL string) {
 	if err != nil {
 		log.Fatalf("[daemon] failed to create WebSocket client: %v", err)
 	}
+
+	// Set up the P2P signaling layer.
+	// The SessionManager tracks active WebRTC PeerConnections.
+	// The Bridge wires DataChannel messages into the existing proxy handler.
+	p2pSessions := p2p.NewSessionManager()
+	p2pBridge := p2p.NewBridge(p2pSessions, proxyHandler)
+	client.SetSignalingHandler(p2pBridge.HandleSignalingOffer)
+	log.Printf("[daemon] P2P signaling layer ready")
 
 	// Run the WebSocket loop in a goroutine so we can listen for signals
 	go client.Run()

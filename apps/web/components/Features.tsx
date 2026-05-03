@@ -7,7 +7,7 @@ export function Features() {
     },
     {
       title: "Stealth by Default",
-      desc: "Native TLS fingerprint masking and stripped proxy headers ensure Cloudflare and Datadome see a real browser.",
+      desc: "Native stealth mocks and stripped proxy headers ensure Cloudflare and Datadome see a real browser.",
       id: "02"
     },
     {

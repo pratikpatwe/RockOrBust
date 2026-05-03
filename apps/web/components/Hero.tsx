@@ -39,7 +39,7 @@ export function Hero() {
             </h1>
 
             <p className="text-base sm:text-lg text-[#A3A3A3] max-w-lg mb-10 leading-relaxed font-light">
-              A decentralized P2P proxy layer for the modern web. Empowering developers with a Native SDK featuring built-in stealth, TLS fingerprinting, and residential routing.
+              A decentralized P2P proxy layer for the modern web. Empowering developers with a Native SDK featuring built-in stealth mocks and residential routing.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-4 mb-10 w-full">

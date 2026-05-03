@@ -43,60 +43,25 @@ func NewHandler() *Handler {
 // Handle is the MessageHandler signature expected by ws.NewClient.
 // It parses the message type and dispatches to the appropriate handler.
 func (h *Handler) Handle(conn *websocket.Conn, raw []byte) {
-	var base protocol.BaseMessage
-	if err := json.Unmarshal(raw, &base); err != nil {
-		log.Printf("[proxy] failed to parse message: %v", err)
-		return
-	}
-
 	// Create a sender that writes responses over the WebSocket
 	sender := func(data []byte) error {
 		return conn.WriteMessage(websocket.TextMessage, data)
 	}
-
-	switch base.Type {
-	case "HTTP_REQUEST":
-		var msg protocol.HTTPRequestMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			h.sendErrorWith(sender, base.ID, "failed to parse HTTP_REQUEST")
-			return
-		}
-		go h.handleHTTPRequest(sender, msg)
-
-	case "CONNECT_REQUEST":
-		var msg protocol.ConnectRequestMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			h.sendErrorWith(sender, base.ID, "failed to parse CONNECT_REQUEST")
-			return
-		}
-		go h.handleConnectRequest(sender, msg)
-
-	case "CONNECT_DATA":
-		var msg protocol.ConnectDataMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			return
-		}
-		h.handleConnectData(msg)
-
-	case "CONNECT_CLOSE":
-		var msg protocol.ConnectCloseMessage
-		if err := json.Unmarshal(raw, &msg); err != nil {
-			return
-		}
-		h.handleConnectClose(msg.ID)
-
-	default:
-		log.Printf("[proxy] unknown message type: %s", base.Type)
-	}
+	h.dispatchJSONMessage(raw, sender, "[proxy]")
 }
 
 // HandleP2PMessage implements the p2p.ProxyDispatcher interface.
 // It processes messages arriving over a WebRTC DataChannel using
 // the exact same proxy logic as the WebSocket path.
 func (h *Handler) HandleP2PMessage(raw []byte, sender func(data []byte) error) {
+	h.dispatchJSONMessage(raw, sender, "[proxy/p2p]")
+}
+
+// dispatchJSONMessage is the internal shared dispatcher for JSON-based proxy messages.
+func (h *Handler) dispatchJSONMessage(raw []byte, sender func(data []byte) error, logPrefix string) {
 	var base protocol.BaseMessage
 	if err := json.Unmarshal(raw, &base); err != nil {
-		log.Printf("[proxy/p2p] failed to parse message: %v", err)
+		log.Printf("%s failed to parse message: %v", logPrefix, err)
 		return
 	}
 
@@ -132,8 +97,126 @@ func (h *Handler) HandleP2PMessage(raw []byte, sender func(data []byte) error) {
 		h.handleConnectClose(msg.ID)
 
 	default:
-		log.Printf("[proxy/p2p] unknown message type: %s", base.Type)
+		log.Printf("%s unknown message type: %s", logPrefix, base.Type)
 	}
+}
+
+// HandleBinaryP2PMessage implements the binary version of the P2P protocol.
+// Frame format: [1 byte Type] [4 bytes ID Length] [N bytes ID] [Payload]
+func (h *Handler) HandleBinaryP2PMessage(raw []byte, sender func(data []byte) error) {
+	if len(raw) < 5 {
+		return
+	}
+
+	msgType := raw[0]
+	idLen := int(uint32(raw[1])<<24 | uint32(raw[2])<<16 | uint32(raw[3])<<8 | uint32(raw[4]))
+	
+	if len(raw) < 5+idLen {
+		return
+	}
+
+	id := string(raw[5 : 5+idLen])
+	payload := raw[5+idLen:]
+
+	switch msgType {
+	case protocol.BinaryMsgHTTPRequest:
+		var req protocol.HTTPRequestMessage
+		if err := json.Unmarshal(payload, &req); err != nil {
+			h.sendBinaryError(sender, id, "failed to parse binary HTTP_REQUEST")
+			return
+		}
+		req.ID = id // Ensure ID matches the frame
+		go h.handleHTTPRequest(h.binarySender(sender), req)
+
+	case protocol.BinaryMsgConnectRequest:
+		var req protocol.ConnectRequestMessage
+		if err := json.Unmarshal(payload, &req); err != nil {
+			h.sendBinaryError(sender, id, "failed to parse binary CONNECT_REQUEST")
+			return
+		}
+		req.ID = id
+		go h.handleConnectRequest(h.binarySender(sender), req)
+
+	case protocol.BinaryMsgConnectData:
+		h.handleConnectData(protocol.ConnectDataMessage{
+			ID:   id,
+			Data: base64.StdEncoding.EncodeToString(payload),
+		})
+
+	case protocol.BinaryMsgConnectClose:
+		h.handleConnectClose(id)
+
+	default:
+		log.Printf("[proxy/p2p] unknown binary message type: %d", msgType)
+	}
+}
+
+// binarySender wraps a raw sender to produce binary frames.
+func (h *Handler) binarySender(rawSender func([]byte) error) func([]byte) error {
+	return func(data []byte) error {
+		// Detect if the data is a JSON message we should convert to binary
+		var base protocol.BaseMessage
+		if err := json.Unmarshal(data, &base); err != nil {
+			return rawSender(data) // Fallback to raw if not JSON
+		}
+
+		var binaryType byte
+		var payload []byte
+		var err error
+
+		switch base.Type {
+		case "HTTP_RESPONSE":
+			var resp protocol.HTTPResponseMessage
+			json.Unmarshal(data, &resp)
+			binaryType = protocol.BinaryMsgHTTPResponse
+			payload, err = json.Marshal(resp)
+		case "CONNECT_ESTABLISHED":
+			binaryType = protocol.BinaryMsgConnectEstablished
+			payload = []byte{}
+		case "CONNECT_DATA":
+			var msg protocol.ConnectDataOutMessage
+			json.Unmarshal(data, &msg)
+			binaryType = protocol.BinaryMsgConnectData
+			payload, err = base64.StdEncoding.DecodeString(msg.Data)
+		case "CONNECT_CLOSE":
+			binaryType = protocol.BinaryMsgConnectClose
+			payload = []byte{}
+		case "ERROR":
+			var msg protocol.ErrorMessage
+			json.Unmarshal(data, &msg)
+			binaryType = protocol.BinaryMsgError
+			payload = []byte(msg.Message)
+		default:
+			return rawSender(data) // Fallback for unknown types
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return rawSender(h.encodeBinaryFrame(binaryType, base.ID, payload))
+	}
+}
+
+func (h *Handler) encodeBinaryFrame(msgType byte, id string, payload []byte) []byte {
+	idBytes := []byte(id)
+	idLen := uint32(len(idBytes))
+	
+	frame := make([]byte, 5+len(idBytes)+len(payload))
+	frame[0] = msgType
+	frame[1] = byte(idLen >> 24)
+	frame[2] = byte(idLen >> 16)
+	frame[3] = byte(idLen >> 8)
+	frame[4] = byte(idLen)
+	
+	copy(frame[5:], idBytes)
+	copy(frame[5+len(idBytes):], payload)
+	
+	return frame
+}
+
+func (h *Handler) sendBinaryError(sender func([]byte) error, id, message string) {
+	sender(h.encodeBinaryFrame(protocol.BinaryMsgError, id, []byte(message)))
 }
 
 // handleHTTPRequest performs a real HTTP request on behalf of the gateway or SDK.

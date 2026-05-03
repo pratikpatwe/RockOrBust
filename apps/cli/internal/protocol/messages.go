@@ -88,3 +88,15 @@ type SignalingAnswerMessage struct {
 	SDP        string   `json:"sdp"`        // SDP answer from the CLI
 	Candidates []string `json:"candidates"` // ICE candidates from the CLI
 }
+
+// --- Binary Protocol Constants (for WebRTC DataChannel) ---
+
+const (
+	BinaryMsgHTTPRequest        byte = 0x01
+	BinaryMsgHTTPResponse       byte = 0x02
+	BinaryMsgConnectRequest     byte = 0x03
+	BinaryMsgConnectEstablished byte = 0x04
+	BinaryMsgConnectData        byte = 0x05
+	BinaryMsgConnectClose       byte = 0x06
+	BinaryMsgError              byte = 0x07
+)

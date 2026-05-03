@@ -36,5 +36,8 @@
   },
   "peerDependencies": {
     "playwright": "^1.x"
+  },
+  "dependencies": {
+    "node-datachannel": "^0.32.3"
   }
 }

@@ -24,12 +24,6 @@ export interface RockOrBustOptions {
    */
   stealth?: boolean;
 
-  /**
-   * What to do if no residential nodes are available for your key.
-   * - true: Fall back to the Gateway's VPS IP address.
-   * - false: Fail the request with a 502 error (Default).
-   */
-  fallbackToVps?: boolean;
 
   /**
    * Whether to use the local machine IP if no residential nodes are available.

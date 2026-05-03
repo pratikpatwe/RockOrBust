@@ -88,6 +88,53 @@ stream {
 }
 ```
 
+---
+
+## P2P Infrastructure: Self-Hosting a TURN Relay (coturn)
+
+For high-performance P2P routing (Mesh-Flow), a TURN relay is essential to facilitate connections between nodes behind symmetric NATs or restrictive firewalls. 
+
+### 1. Firewall Configuration
+Ensure the following ports are open on your host firewall:
+- **Port 3478 (TCP/UDP)**: Primary STUN/TURN signaling.
+- **Ports 49152–65535 (UDP)**: Relay data range (RFC 5766).
+
+### 2. Deployment via Docker
+Deploy the official `coturn` image using the following production-grade configuration. It is recommended to use `network_mode: host` to avoid the overhead of Docker's user-land proxy for the large UDP port range.
+
+**docker-compose.yaml**
+```yaml
+services:
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    network_mode: host
+    restart: unless-stopped
+    command:
+      - turnserver
+      - -n
+      - --log-file=stdout
+      - --lt-cred-mech
+      - --fingerprint
+      - --no-multicast-peers
+      - --no-loopback-peers
+      - --static-auth-secret=${TURN_SECRET}
+      - --realm=coturn.yourdomain.com
+      - --external-ip=$$(curl -s https://api.ipify.org)
+```
+
+### 3. Gateway Integration
+Once the TURN server is live, link it to the RockOrBust Gateway by updating your `.env`:
+```env
+TURN_SECRET=your_static_auth_secret
+TURN_HOST=coturn.yourdomain.com
+```
+
+### 4. DNS Requirements
+Create an `A Record` for your TURN subdomain (e.g., `coturn.yourdomain.com`) pointing to your server's public IP. 
+> [!IMPORTANT]
+> If using Cloudflare, you **must** disable the proxy (Grey Cloud) for this record. TURN/STUN traffic is not compatible with Layer 7 HTTP proxies.
+
 ### 3. Protocol Selection
 - **API (Port 443/80)**: Use standard HTTPS for key generation and status checks.
 - **Proxy (Port 8080)**: Use raw `http://` (unencrypted) for the proxy server address. Encryption is handled at the tunnel level.

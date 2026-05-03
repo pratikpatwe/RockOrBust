@@ -7,11 +7,11 @@ This package provides a drop-in stealth wrapper for Playwright's `chromium`, `fi
 ## Features
 
 - **Multi-Browser Support**: Drop-in replacement for `chromium`, `firefox`, and `webkit`.
-- **Transparent Proxying**: Automatically routes all context traffic through the RockOrBust residential gateway.
+- **P2P Mesh-Flow Architecture**: Establishes direct WebRTC DataChannel connections to residential nodes, significantly reducing proxy latency and offloading gateway traffic.
 - **Advanced Fingerprint Deception**: Deep prototype faking (`PluginArray`, `MimeTypeArray`) to defeat sophisticated `instanceof` detector checks.
 - **Native Browser Masking**: Injects standard Windows `User-Agent`/Client Hints, strips `HeadlessChrome` signatures, and removes `webdriver` natively via Chromium C++ flags.
 - **Zero Configuration**: Automatically picks up your `ROB_KEY` from environment variables.
-- **Drop-in Compatibility**: Works seamlessly with your existing Playwright scripts—no logic changes required.
+- **Smart Fallback**: Automatically falls back to Gateway WebSocket tunneling if P2P negotiation fails (e.g., behind symmetric NATs).
 
 ## Installation
 
@@ -34,7 +34,7 @@ async function main() {
   const browser: Browser = await chromium.launch({
     rockorbust: {
       key: 'rob_your_key_here', // Or use process.env.ROB_KEY
-      fallbackToVps: true       // Optional: failover to VPS IP if no residential nodes are active
+      stealth: true             // Optional: defaults to true
     }
   });
 
@@ -56,7 +56,6 @@ The `chromium.launch` method accepts a `rockorbust` configuration object:
 | :--- | :--- | :--- |
 | `key` | `string` | Your RockOrBust access key (required if `ROB_KEY` env var is missing). |
 | `gatewayUrl` | `string` | Custom gateway URL (defaults to `https://robapi.buildshot.xyz`). |
-| `fallbackToVps` | `boolean` | If `true`, traffic routes through the Gateway IP if no residential nodes are available. |
 | `fallbackToLocal` | `boolean` | If `true`, bypasses the proxy entirely if no residential nodes are available. |
 | `stealth` | `boolean` | Enable/disable automatic stealth script injection (defaults to `true`). |
 

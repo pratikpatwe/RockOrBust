@@ -7,6 +7,8 @@ import {
 import http from 'http';
 import { LaunchOptions } from './types';
 import { STEALTH_SCRIPT } from './stealth';
+import { establishP2PConnection, P2PSession } from './p2p/datachannel';
+import { startLocalProxy, LocalProxy } from './p2p/localProxy';
 
 const DEFAULT_GATEWAY = 'http://robapi.buildshot.xyz:8080';
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -68,7 +70,6 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       key = process.env.ROB_KEY, 
       gatewayUrl = DEFAULT_GATEWAY, 
       stealth = true,
-      fallbackToVps = false,
       fallbackToLocal = false
     } = rockorbust;
 
@@ -84,15 +85,31 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       }
     }
 
-    const proxyUsername = fallbackToVps ? `${key}:fallback` : key;
+    let p2pSession: P2PSession | undefined;
+    let localProxy: LocalProxy | undefined;
 
-    // Configure Proxy Gateway
-    pwOptions.proxy = {
-      server: gatewayUrl,
-      username: proxyUsername,
-      password: 'rob',
-      ...pwOptions.proxy
-    };
+    try {
+      // 1. Attempt P2P Direct Connection
+      console.log('[RockOrBust] Establishing P2P DataChannel connection...');
+      p2pSession = await establishP2PConnection(gatewayUrl, key);
+      localProxy = await startLocalProxy(p2pSession);
+      console.log(`[RockOrBust] P2P connection established. Local proxy running on port ${localProxy.port}`);
+
+      pwOptions.proxy = {
+        server: `http://127.0.0.1:${localProxy.port}`,
+        ...pwOptions.proxy
+      };
+    } catch (err: any) {
+      // 2. Fallback to Gateway Relay Tunnel
+      console.warn(`[RockOrBust] P2P connection failed (${err.message}). Falling back to Gateway relay.`);
+      
+      pwOptions.proxy = {
+        server: gatewayUrl,
+        username: key,
+        password: 'rob',
+        ...pwOptions.proxy
+      };
+    }
 
     // Apply Stealth Launch Arguments
     if (stealth) {
@@ -106,6 +123,13 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
     }
 
     const browser = await originalLaunch(pwOptions);
+
+    // Clean up proxy when browser closes
+    const originalClose = browser.close.bind(browser);
+    browser.close = async () => {
+      if (localProxy) localProxy.close();
+      await originalClose();
+    };
 
     // Patch BrowserContext to inject stealth scripts, mask User-Agent, and add Smart Diagnostics
     const originalNewContext = browser.newContext.bind(browser);

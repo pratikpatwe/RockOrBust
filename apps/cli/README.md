@@ -7,7 +7,8 @@ The RockOrBust CLI is a lightweight, cross-platform utility that connects your l
 - **Efficiency**: Written in Go for minimal resource consumption.
 - **Portability**: Compiled as a standalone binary with no external dependencies.
 - **Automated Setup**: On-demand key generation with no account registration required.
-- **Telemetry**: Built-in latency reporting to ensure high-speed routing.
+- **P2P Mesh Flow**: Leverages WebRTC DataChannels (`pion/webrtc`) for direct, high-performance P2P routing to offload the Gateway.
+- **Telemetry**: Built-in latency reporting and signaling via WebSocket.
 
 ## Installation
 
@@ -67,6 +68,12 @@ If the CLI reports an "Unauthorized" status, ensure that:
 1.  Your key is valid and has not been revoked.
 2.  Your network allows outgoing WebSocket connections (Port 443).
 3.  The Gateway URL is reachable from your environment.
+
+### WebRTC / P2P Connectivity
+The CLI relies on WebRTC DataChannels for direct proxy routing.
+- **Direct Connectivity (STUN)**: The CLI uses public Google STUN servers by default to discover its public IP and attempt UDP hole-punching.
+- **Relay Fallback (TURN)**: If deployed behind a restrictive firewall or symmetric NAT, the node will seamlessly fall back to using the central Gateway's TURN relay or WebSocket tunnel.
+- **Firewall Requirements**: For the best performance (direct P2P), ensure your network allows outgoing UDP traffic on ports `19302` (STUN) and `3478` (TURN).
 
 ---
 

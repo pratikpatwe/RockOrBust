@@ -4,10 +4,11 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 
 ## Core Responsibilities
 
+- **Signaling Orchestration**: Coordinates WebRTC SDP offer/answer exchanges between SDK clients and CLI nodes.
 - **Node Registry**: Manages a real-time pool of active residential nodes.
 - **Bucketed Routing**: Implements an O(1) selection algorithm to prioritize low-latency nodes (<250ms).
 - **Authentication**: Validates request keys against a Supabase backend.
-- **WebSocket Tunneling**: Multiplexes incoming HTTP(S) proxy traffic over persistent WebSocket connections to residential nodes.
+- **WebSocket Tunneling**: Multiplexes legacy HTTP(S) proxy traffic and serves as a TURN-equivalent fallback for failed P2P connections.
 - **Version Management**: Automated GitHub release tracking to serve the latest CLI binaries to the node network.
 - **Security**: Implements IP-based rate limiting for key generation and edge protection for the residential pool.
 
@@ -19,10 +20,11 @@ The Gateway is the orchestration engine of the RockOrBust network. It handles ed
 | `/auth/register` | `POST` | HTTP | Generates a new unique `rob_` key (Rate limited: 1/hr). |
 | `/api/stats`    | `GET`  | HTTP | Returns global network health and total active nodes. |
 | `/api/stats/:keyId` | `GET` | HTTP | Returns active node count for a specific key. |
+| `/api/signal/:keyId`| `POST` | HTTP | Initiates WebRTC signaling between SDK and a residential node. |
 | `/api/cli/latest`| `GET`  | HTTP | Returns the latest CLI version and OS-specific download URL. |
 | `/health`        | `GET`  | HTTP | Lightweight JSON status for automated monitoring. |
-| `/ws` | `Upgrade` | WebSocket | Primary tunnel entry for Residential CLI nodes. |
-| `*` (Root) | `CONNECT` | Proxy | Standard HTTP Proxy entry point for Playwright traffic. |
+| `/ws` | `Upgrade` | WebSocket | Primary tunnel and control plane entry for Residential CLI nodes. |
+| `*` (Root) | `CONNECT` | Proxy | Legacy fallback HTTP Proxy entry point. |
 
 ## Deployment
 
@@ -37,6 +39,8 @@ Required configuration in `.env`:
 PORT=3000
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+TURN_SECRET=your-coturn-static-auth-secret
+TURN_HOST=robapi.buildshot.xyz
 ```
 
 ### Installation & Build
@@ -53,8 +57,14 @@ Generates a new unique `rob_` access key.
 - **Rate Limit**: 1 request per hour per IP.
 - **Response**: `{ "key": "rob_..." }`
 
+### POST `/api/signal/:keyId`
+Orchestrates a WebRTC P2P connection between an SDK client and a residential node.
+- **Payload**: `{ "sdp": "...", "candidates": ["..."] }`
+- **Response**: Returns the node's SDP answer, ICE candidates, and Gateway-provided STUN/TURN server configuration.
+- **Timeout**: Gracefully fails with 504 if the node does not respond within 10 seconds.
+
 ### WebSocket `/ws`
-Internal endpoint for Residential CLI nodes to establish a persistent tunnel. Requires a valid `rob_` key in the connection headers.
+Internal endpoint for Residential CLI nodes to establish a persistent control plane and fallback data tunnel. Requires a valid `rob_` key in the connection headers.
 
 ## Self-Hosting & VPS Configuration
 

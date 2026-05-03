@@ -57,6 +57,13 @@ class NodeRegistry {
     return this.totalNodes;
   }
 
+  private calculateTier(latency?: number): 'fast' | 'medium' | 'slow' {
+    const l = latency || 999;
+    if (l < 150) return 'fast';
+    if (l < 450) return 'medium';
+    return 'slow';
+  }
+
   /**
    * Returns a sampled array of all active node locations across the entire network.
    * Useful for the landing page visualizer global state.
@@ -69,7 +76,8 @@ class NodeRegistry {
           snapshots.push({
             id: conn.id.substring(0, 4), // Anonymized
             latency: conn.latency,
-            location: conn.location
+            location: conn.location,
+            tier: this.calculateTier(conn.latency)
           });
         }
         if (snapshots.length >= limit) return snapshots;
@@ -89,7 +97,7 @@ class NodeRegistry {
       id: conn.id.substring(0, 4),
       latency: conn.latency,
       location: conn.location,
-      tier: (conn.latency || 999) < 150 ? 'fast' : (conn.latency || 999) < 450 ? 'medium' : 'slow'
+      tier: this.calculateTier(conn.latency)
     }));
   }
 

@@ -43,7 +43,8 @@ async function fetchLatestFromGitHub() {
     const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'RockOrBust-Gateway-Updater'
+        'User-Agent': 'RockOrBust-Gateway-Updater',
+        ...(process.env.GITHUB_TOKEN ? { 'Authorization': `token ${process.env.GITHUB_TOKEN}` } : {})
       }
     });
 
@@ -76,7 +77,7 @@ async function fetchLatestFromGitHub() {
 
     // console.log(`[Updater] Synced latest release from GitHub: ${data.tag_name}`);
   } catch (error) {
-    // console.error('[Updater] Failed to fetch latest release from GitHub:', error);
+    console.error('[Updater] Failed to fetch latest release from GitHub:', error);
   }
 }
 
@@ -102,21 +103,26 @@ export function getLatestRelease() {
 export function getAssetUrl(os: string, arch: string): string | null {
   if (!latestRelease) return null;
 
-  let filename = '';
   const cleanOS = os.toLowerCase();
   const cleanArch = arch.toLowerCase();
 
-  if (cleanOS === 'windows') {
-    filename = 'rockorbust-windows-amd64.exe';
-  } else if (cleanOS === 'linux') {
-    filename = 'rockorbust-linux-amd64';
-  } else if (cleanOS === 'darwin') {
-    if (cleanArch === 'arm64') {
-      filename = 'rockorbust-darwin-arm64';
-    } else {
-      filename = 'rockorbust-darwin-amd64';
+  // Fuzzy matching: find an asset that contains both the OS and Arch strings
+  const foundAssetKey = Object.keys(latestRelease.assets).find(name => {
+    const n = name.toLowerCase();
+    // Windows check
+    if (cleanOS === 'windows') {
+      return n.includes('windows') && n.includes(cleanArch);
     }
-  }
+    // Linux check
+    if (cleanOS === 'linux') {
+      return n.includes('linux') && n.includes(cleanArch);
+    }
+    // macOS check
+    if (cleanOS === 'darwin' || cleanOS === 'macos') {
+      return (n.includes('darwin') || n.includes('apple') || n.includes('macos')) && n.includes(cleanArch);
+    }
+    return false;
+  });
 
-  return latestRelease.assets[filename] || null;
+  return foundAssetKey ? latestRelease.assets[foundAssetKey] : null;
 }

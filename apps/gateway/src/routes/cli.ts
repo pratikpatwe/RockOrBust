@@ -25,6 +25,7 @@ router.get('/latest', (req, res) => {
   const downloadUrl = getAssetUrl(os, arch);
 
   if (!downloadUrl) {
+    console.warn(`[CLI] Download request failed: No binary found for OS=${os}, Arch=${arch}`);
     return res.status(404).json({ 
       error: `No binary found for OS: ${os}, Arch: ${arch}` 
     });

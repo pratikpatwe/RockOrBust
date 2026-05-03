@@ -43,7 +43,7 @@ export function setupProxy(server: http.Server) {
  * Handles standard HTTP requests (GET, POST, etc.)
  */
 async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-  const { key, fallback } = extractKeyAndOptions(req);
+  const key = extractKey(req);
 
   if (!key) {
     res.writeHead(407, { 'Proxy-Authenticate': 'Basic realm="Rock or Bust"' });
@@ -54,30 +54,6 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
   const node = await getActiveNodeForKey(key);
   
   if (!node) {
-    if (fallback) {
-      console.log(`No node for ${key}, falling back to VPS IP for HTTP ${req.method} ${req.url}`);
-      
-      const targetUrl = new URL(req.url!);
-      const proxyReq = http.request({
-        hostname: targetUrl.hostname,
-        port: targetUrl.port || 80,
-        path: targetUrl.pathname + targetUrl.search,
-        method: req.method,
-        headers: req.headers
-      }, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
-        proxyRes.pipe(res);
-      });
-
-      proxyReq.on('error', (err) => {
-        console.error('VPS Fallback HTTP error:', err.message);
-        res.writeHead(502);
-        res.end('VPS Fallback failed');
-      });
-
-      req.pipe(proxyReq);
-      return;
-    }
     res.writeHead(502);
     res.end('No active residential nodes available for this key');
     return;
@@ -97,7 +73,7 @@ async function handleProxyRequest(req: http.IncomingMessage, res: http.ServerRes
  * Handles HTTPS CONNECT requests
  */
 async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socket, head: Buffer) {
-  const { key, fallback } = extractKeyAndOptions(req);
+  const key = extractKey(req);
 
   if (!key) {
     socket.write('HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm="Rock or Bust"\r\n\r\n');
@@ -108,18 +84,6 @@ async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socke
   const node = await getActiveNodeForKey(key);
   
   if (!node) {
-    if (fallback) {
-      console.log(`No node for ${key}, falling back to VPS IP for CONNECT ${req.url}`);
-      const [host, port] = req.url!.split(':');
-      const proxySocket = net.connect(parseInt(port), host, () => {
-        socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-        proxySocket.write(head);
-        proxySocket.pipe(socket);
-        socket.pipe(proxySocket);
-      });
-      proxySocket.on('error', () => socket.end());
-      return;
-    }
     socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\nNo active residential nodes available for this key\r\n');
     socket.end();
     return;
@@ -130,10 +94,9 @@ async function handleConnectRequest(req: http.IncomingMessage, socket: net.Socke
 }
 
 /**
- * Extracts the rob_ key and options from the Proxy-Authorization header
- * Format: rob_key:option1,option2
+ * Extracts the rob_ key from the Proxy-Authorization header
  */
-function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; fallback: boolean } {
+function extractKey(req: http.IncomingMessage): string | null {
   let rawKey: string | null = null;
   
   const auth = req.headers['proxy-authorization'];
@@ -150,14 +113,11 @@ function extractKeyAndOptions(req: http.IncomingMessage): { key: string | null; 
   }
 
   if (!rawKey || !rawKey.startsWith('rob_')) {
-    return { key: null, fallback: false };
+    return null;
   }
 
-  // Check for fallback flag in format rob_key:fallback
-  const [key, options] = rawKey.split(':');
-  const fallback = options === 'fallback';
-
-  return { key, fallback };
+  // Strip off any old fallback options like rob_key:fallback
+  return rawKey.split(':')[0];
 }
 
 /**

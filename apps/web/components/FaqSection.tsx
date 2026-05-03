@@ -3,26 +3,16 @@
 import { useState, useEffect } from "react";
 
 const faqs = [
-  { question: "What is RockOrBust?", answer: "RockOrBust is an open-source browser automation infrastructure that lets you build and use your own residential proxy network. It includes a proxy node CLI, a routing gateway, and plugins for Playwright and Puppeteer." },
-  { question: "How does RockOrBust work?", answer: "RockOrBust turns your devices into proxy nodes using a lightweight CLI. These nodes route traffic through real residential IPs, while the gateway manages routing and load balancing. The Playwright and Puppeteer plugins connect your automation directly to this network." },
-  { question: "What problem does RockOrBust solve?", answer: "Most browser automation workflows fail due to IP blocking, bot detection, and expensive proxy providers. RockOrBust solves this by letting you use your own residential IPs instead of paying for third-party proxy services." },
-  { question: "Is RockOrBust a proxy provider?", answer: "No. RockOrBust is not a proxy provider. It is an open-source system that allows you to create and manage your own proxy network using devices you control." },
-  { question: "Is RockOrBust free to use?", answer: "Yes. RockOrBust is fully open source. You can run your own proxy nodes and infrastructure without paying for external proxy services." },
-  { question: "Does RockOrBust work with Playwright and Puppeteer?", answer: "Yes. RockOrBust provides a Playwright Extra plugin and supports Puppeteer, allowing you to integrate proxy routing and automation with minimal setup." },
-  { question: "Can I use multiple plugins with RockOrBust?", answer: "Yes. RockOrBust works with the Playwright Extra ecosystem, so you can combine it with stealth plugins, CAPTCHA solvers, and other automation tools." },
-  { question: "Does RockOrBust make automation undetectable?", answer: "No system is fully undetectable. RockOrBust reduces detection by using real residential IPs and routing strategies, but advanced anti-bot systems may still detect automation." },
-  { question: "How is RockOrBust different from BrightData or Oxylabs?", answer: "Traditional providers sell access to large proxy networks. RockOrBust lets you build your own network using your own devices, giving you full control and eliminating per-GB costs." },
-  { question: "Do I need technical knowledge to use RockOrBust?", answer: "Basic knowledge of Node.js and browser automation is helpful. However, the CLI and plugins are designed to be simple to set up and integrate." },
-  { question: "Can I share my proxy network with a team?", answer: "Yes. RockOrBust is designed for teams and groups. Multiple users can contribute nodes and share the same proxy infrastructure." },
-  { question: "Is RockOrBust secure?", answer: "RockOrBust is open source, so you can audit the code. You control your own nodes and infrastructure, which reduces reliance on third-party proxy providers." },
-  { question: "What is the RockOrBust CLI?", answer: "The CLI is a lightweight tool (written in Go) that turns your device into a proxy node. It connects to the gateway and allows your IP to be used for routing traffic." },
-  { question: "What is the RockOrBust gateway?", answer: "The gateway manages routing between nodes and automation clients. It handles load balancing, connection management, and request forwarding." },
-  { question: "What is the Playwright Extra plugin?", answer: "The plugin allows you to use RockOrBust directly inside Playwright Extra. It automatically configures proxy routing and integrates with your automation workflow." },
-  { question: "Can I use RockOrBust for web scraping?", answer: "Yes. RockOrBust is designed for web scraping, data extraction, testing, and automation use cases where IP rotation and detection avoidance are important." },
-  { question: "Does RockOrBust support proxy rotation?", answer: "Yes. The system can rotate between available nodes to distribute requests and reduce detection risk." },
-  { question: "Can I control which IP or region I use?", answer: "Yes. You can configure routing logic and choose nodes based on availability, region, or other parameters." },
-  { question: "Why use RockOrBust instead of free proxy lists?", answer: "Free proxy lists are unreliable, slow, and often flagged. RockOrBust uses real residential IPs from devices you control, making it more stable and trustworthy." },
-  { question: "Is RockOrBust suitable for production use?", answer: "Yes, but it depends on your setup. For production use, you should ensure a stable node network, proper monitoring, and good routing strategies." }
+  { question: "What is RockOrBust?", answer: "RockOrBust is an open-source, decentralized P2P proxy infrastructure. It allows you to build your own residential proxy network using a Go CLI, a signaling Gateway, and native SDKs for Playwright and Puppeteer." },
+  { question: "What is the P2P Mesh-Flow architecture?", answer: "Mesh-Flow is a peer-to-peer tunneling protocol that uses WebRTC DataChannels to connect your browser directly to residential nodes. This eliminates gateway latency and ensures your proxy traffic never passes through a centralized VPS." },
+  { question: "How does the signaling process work?", answer: "When an SDK initiates a connection, it sends an encrypted signaling offer to the Gateway. The Gateway identifies an available residential node and forwards the signal. The node responds with an answer, establishing a direct WebRTC connection between the two peers." },
+  { question: "Is the traffic encrypted?", answer: "Yes. All traffic between the SDK and the residential node is encrypted using DTLS (Datagram Transport Layer Security) as part of the standard WebRTC protocol suite." },
+  { question: "What happens if a P2P connection fails?", answer: "RockOrBust includes a 'Smart Fallback' mechanism. If a direct P2P connection cannot be established (e.g., due to highly restrictive symmetric NATs), the system automatically falls back to a secure WebSocket tunnel through the Gateway." },
+  { question: "Does RockOrBust support both Playwright and Puppeteer?", answer: "Yes. We provide a Native Playwright Plugin for zero-dependency setups and a Unified Extra Plugin for the playwright-extra and puppeteer-extra ecosystems." },
+  { question: "How is this different from traditional proxy providers?", answer: "Traditional providers charge you per GB and relay traffic through their own servers. RockOrBust lets you own the infrastructure. You contribute nodes, and the traffic flows directly over your own decentralized mesh." },
+  { question: "Do I still need a Gateway?", answer: "Yes. The Gateway acts as the 'Signaling Control Plane'. It is required for node discovery, authentication, and orchestrating the initial WebRTC handshakes." },
+  { question: "Is RockOrBust free to use?", answer: "Yes. RockOrBust is fully open-source (MIT License). You can deploy your own gateway and run your own nodes without any subscription fees." },
+  { question: "What are the requirements for running a node?", answer: "Any device with a stable internet connection can run the Go CLI. It is lightweight, cross-platform (Windows, Linux, macOS), and can run as a background daemon." }
 ];
 
 const ITEMS_PER_PAGE = 5;

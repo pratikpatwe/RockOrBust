@@ -71,21 +71,18 @@ func Update(downloadURL string) error {
 		return fmt.Errorf("failed to get executable path: %w", err)
 	}
 
-	// On Windows, we rename the existing file before downloading the new one
 	// because we cannot overwrite a running executable.
 	oldExePath := exePath + ".old"
-	if runtime.GOOS == "windows" {
-		if err := os.Rename(exePath, oldExePath); err != nil {
-			return fmt.Errorf("failed to rename existing binary: %w", err)
-		}
+	_ = os.Remove(oldExePath) // ignore error if doesn't exist
+
+	if err := os.Rename(exePath, oldExePath); err != nil {
+		return fmt.Errorf("failed to rename existing binary: %w", err)
 	}
 
 	out, err := os.OpenFile(exePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
-		// Try to recover on Windows
-		if runtime.GOOS == "windows" {
-			os.Rename(oldExePath, exePath)
-		}
+		// Try to recover
+		os.Rename(oldExePath, exePath)
 		return fmt.Errorf("failed to create new binary: %w", err)
 	}
 	defer out.Close()

@@ -26,7 +26,15 @@ automation by routing traffic through real residential connections.
   4. rockorbust status        - Check your connection health
   5. rockorbust bust          - Leave the network`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Only check if we are NOT running the install command itself
+		// 1. Cleanup any legacy .old binaries from previous updates
+		if exe, err := os.Executable(); err == nil {
+			oldExe := exe + ".old"
+			if _, err := os.Stat(oldExe); err == nil {
+				_ = os.Remove(oldExe)
+			}
+		}
+
+		// 2. Only check if we are NOT running the install command itself
 		if cmd.Name() != "install" && !install.IsInstalled() {
 			ui.Warning("RockOrBust is not installed globally.")
 			ui.Info("Run 'rockorbust install' to enable access from any terminal.")

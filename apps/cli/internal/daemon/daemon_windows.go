@@ -32,3 +32,8 @@ func stopGracefully(pid int) error {
 	}
 	return process.Kill()
 }
+
+// forceKill is the same as stopGracefully on Windows.
+func forceKill(pid int) error {
+	return stopGracefully(pid)
+}

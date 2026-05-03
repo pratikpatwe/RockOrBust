@@ -79,6 +79,7 @@ type SignalingOfferMessage struct {
 	SessionID  string   `json:"sessionId"`  // Unique session identifier
 	SDP        string   `json:"sdp"`        // SDP offer from the SDK
 	Candidates []string `json:"candidates"` // ICE candidates from the SDK
+	ICEServers []any    `json:"iceServers"` // Optional ICE/TURN servers from the gateway
 }
 
 // SignalingAnswerMessage is the CLI's response to a signaling offer.

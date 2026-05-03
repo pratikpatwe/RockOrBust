@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/pion/webrtc/v4"
 	"github.com/pratikpatwe/RockOrBust/cli/internal/protocol"
 )
 
@@ -56,10 +57,18 @@ func (b *Bridge) OnDataChannelMessage(session *Session, data []byte) {
 // when a SIGNALING_OFFER message arrives from the Gateway.
 // It returns the signaling answer to send back.
 func (b *Bridge) HandleSignalingOffer(msg protocol.SignalingOfferMessage) (*protocol.SignalingAnswerMessage, error) {
+	// Convert []any to []webrtc.ICEServer
+	var iceServers []webrtc.ICEServer
+	if msg.ICEServers != nil {
+		iceData, _ := json.Marshal(msg.ICEServers)
+		json.Unmarshal(iceData, &iceServers)
+	}
+
 	sdpAnswer, candidates, err := b.sessions.HandleOffer(
 		msg.SessionID,
 		msg.SDP,
 		msg.Candidates,
+		iceServers,
 		b.OnDataChannelMessage,
 	)
 	if err != nil {

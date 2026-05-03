@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const pidFileName = "rockorbust.pid"
@@ -83,7 +84,7 @@ func IsRunning(pid int) bool {
 	return isRunning(pid)
 }
 
-// Stop sends SIGTERM to the daemon and removes the PID file.
+// Stop sends SIGTERM to the daemon, waits for it to exit, and falls back to SIGKILL if needed.
 func Stop() error {
 	pid, err := ReadPID()
 	if err != nil {
@@ -94,8 +95,22 @@ func Stop() error {
 		return fmt.Errorf("daemon is not running")
 	}
 
+	// 1. Try graceful stop
 	if err := stopGracefully(pid); err != nil {
-		return fmt.Errorf("failed to stop daemon: %w", err)
+		return fmt.Errorf("failed to signal daemon: %w", err)
+	}
+
+	// 2. Poll for exit (up to 5 seconds)
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		if !IsRunning(pid) {
+			return RemovePID()
+		}
+	}
+
+	// 3. Fallback to force kill if still running
+	if err := forceKill(pid); err != nil {
+		return fmt.Errorf("failed to force kill daemon: %w", err)
 	}
 
 	return RemovePID()

@@ -48,9 +48,14 @@ func NewSessionManager() *SessionManager {
 // HandleOffer processes a signaling offer from the Gateway, creates a
 // PeerConnection, and returns the SDP answer + ICE candidates.
 // The onMessage callback is invoked for every message received on the DataChannel.
-func (sm *SessionManager) HandleOffer(sessionID, sdpOffer string, remoteCandidates []string, onMessage func(session *Session, data []byte)) (sdpAnswer string, localCandidates []string, err error) {
+func (sm *SessionManager) HandleOffer(sessionID, sdpOffer string, remoteCandidates []string, iceServers []webrtc.ICEServer, onMessage func(session *Session, data []byte)) (sdpAnswer string, localCandidates []string, err error) {
 	config := webrtc.Configuration{
 		ICEServers: ICEConfig,
+	}
+
+	// Use provided ICE servers if available
+	if len(iceServers) > 0 {
+		config.ICEServers = iceServers
 	}
 
 	// Create the PeerConnection

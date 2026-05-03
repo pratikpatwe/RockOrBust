@@ -5,6 +5,7 @@ import http from 'http';
 import authRoutes from './routes/auth';
 import cliRoutes from './routes/cli';
 import statsRoutes from './routes/stats';
+import signalRoutes from './routes/signal';
 import { setupWebSocket } from './websocket';
 import { setupProxy } from './proxy';
 import { startUpdater } from './lib/updater';
@@ -127,6 +128,7 @@ app.get('/health', publicLimiter, (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/api/cli', publicLimiter, cliRoutes);
 app.use('/api/stats', statsLimiter, statsRoutes);
+app.use('/api/signal', publicLimiter, signalRoutes);
 
 /**
  * On every gateway boot, mark ALL previously-online nodes as offline.

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { URL } from 'url';
 import { nodeRegistry } from '../lib/nodeRegistry';
 import { tunnelManager } from '../lib/tunnelManager';
+import { signalingManager } from '../lib/signalingManager';
 
 /**
  * Sets up the WebSocket server for node signaling.
@@ -103,6 +104,10 @@ export function setupWebSocket(server: Server) {
           const msg = JSON.parse(messageStr);
           if (msg.type === 'latency' && typeof msg.ms === 'number') {
             nodeRegistry.updateLatency(key, ws, msg.ms);
+            return; // Handled
+          }
+          if (msg.type === 'SIGNALING_ANSWER') {
+            signalingManager.resolveSession(msg.sessionId, msg.sdp, msg.candidates);
             return; // Handled
           }
         } catch (e) {

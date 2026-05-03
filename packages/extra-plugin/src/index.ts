@@ -1,5 +1,7 @@
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 import http from 'http';
+import { establishP2PConnection, P2PSession } from './p2p/datachannel';
+import { startLocalProxy, LocalProxy } from './p2p/localProxy';
 
 /**
  * Configuration options for the RockOrBustExtraPlugin.
@@ -9,8 +11,6 @@ interface RockOrBustOptions {
   key?: string;
   /** The RockOrBust Gateway endpoint URL. */
   gatewayUrl?: string;
-  /** Whether to fallback to the VPS IP if no residential nodes are available. */
-  fallbackToVps?: boolean;
   /** Whether to use the local machine IP if no residential nodes are available. */
   fallbackToLocal?: boolean;
 }
@@ -25,6 +25,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
  * via the RockOrBust decentralized gateway.
  */
 class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
+  private localProxy?: LocalProxy;
+
   constructor(opts: RockOrBustOptions = {}) {
     super(opts);
   }
@@ -37,7 +39,6 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     return {
       key: process.env.ROB_KEY,
       gatewayUrl: DEFAULT_GATEWAY,
-      fallbackToVps: false,
       fallbackToLocal: false
     };
   }
@@ -89,7 +90,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   async beforeLaunch(options: any) {
     const pluginOpts = (this as any).opts || {};
     const opts = { ...this.defaults, ...pluginOpts };
-    const { key, gatewayUrl, fallbackToVps, fallbackToLocal } = opts;
+    const { key, gatewayUrl, fallbackToLocal } = opts;
 
     if (!key || !key.startsWith('rob_')) {
       throw new Error(
@@ -108,12 +109,23 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
       }
     }
 
-    const proxyUsername = fallbackToVps ? `${key}:fallback` : key;
-    
-    if (!options.proxy || !options.proxy.server) {
+    // Try P2P
+    try {
+      console.log('[RockOrBust] Establishing P2P DataChannel connection...');
+      const session = await establishP2PConnection(gatewayUrl, key);
+      this.localProxy = await startLocalProxy(session);
+      console.log(`[RockOrBust] P2P connection established. Local proxy running on port ${this.localProxy.port}`);
+
+      options.proxy = {
+        server: `http://127.0.0.1:${this.localProxy.port}`,
+        ...options.proxy
+      };
+    } catch (err: any) {
+      console.warn(`[RockOrBust] P2P connection failed (${err.message}). Falling back to Gateway relay.`);
+      
       options.proxy = {
         server: gatewayUrl,
-        username: proxyUsername,
+        username: key,
         password: 'rob',
         ...options.proxy
       };
@@ -129,6 +141,19 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     if (!options.userAgent) {
       options.userAgent = DEFAULT_USER_AGENT;
     }
+  }
+
+  /**
+   * Patches the browser to ensure the local proxy is cleaned up on close.
+   */
+  async onBrowser(browser: any) {
+    const originalClose = browser.close.bind(browser);
+    browser.close = async () => {
+      if (this.localProxy) {
+        this.localProxy.close();
+      }
+      return originalClose();
+    };
   }
 
   /**

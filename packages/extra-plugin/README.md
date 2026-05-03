@@ -4,10 +4,11 @@ A modular plugin for **Puppeteer-Extra** and **Playwright-Extra** that routes yo
 
 ## Features
 
-- **Seamless Proxying:** Automatically configures the browser to use the RockOrBust Gateway.
+- **P2P Mesh-Flow Architecture:** Establishes direct WebRTC DataChannel connections to residential nodes for maximum speed and security.
 - **Residential IPs:** Harness the power of decentralized residential nodes.
 - **Zero Collisions:** Focused exclusively on proxying, making it compatible with other stealth plugins.
 - **Unified Support:** One plugin for both Puppeteer and Playwright.
+- **Smart Fallback:** Automatically falls back to Gateway WebSocket tunneling if P2P negotiation fails.
 
 ## Installation
 
@@ -23,8 +24,7 @@ npm install @rockorbust/extra-plugin
 const { chromium } = require('playwright-extra');
 const stealth = require('puppeteer-extra-plugin-stealth')();
 const rockorbust = require('@rockorbust/extra-plugin')({
-  key: 'rob_your_key_here',
-  fallbackToVps: true // Fallback to VPS IP if no residential nodes are available
+  key: 'rob_your_key_here'
 });
 
 chromium.use(stealth);
@@ -64,7 +64,6 @@ puppeteer.use(rockorbust);
 | :--- | :--- | :--- | :--- |
 | `key` | `string` | `process.env.ROB_KEY` | Your RockOrBust ROB key (starts with `rob_`). |
 | `gatewayUrl` | `string` | `http://robapi.buildshot.xyz:8080` | The RockOrBust Gateway URL. |
-| `fallbackToVps` | `boolean` | `false` | If true, falls back to the VPS IP if no residential nodes are online. |
 | `fallbackToLocal` | `boolean` | `false` | If true, bypasses proxy and uses local machine IP if no nodes are online. |
 
 ## License

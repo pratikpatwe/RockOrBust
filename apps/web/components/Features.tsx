@@ -11,8 +11,8 @@ export function Features() {
       id: "02"
     },
     {
-      title: "Latency Routing",
-      desc: "The Node.js Gateway constantly profiles nodes, automatically routing your requests through the lowest latency tunnel.",
+      title: "Signaling Hub",
+      desc: "The Gateway acts as a Signaling Orchestrator, coordinating direct WebRTC handshakes for a zero-latency P2P Mesh-Flow.",
       id: "03"
     },
     {

@@ -19,12 +19,12 @@ export function Hero() {
           {/* Mobile Marquee Container */}
           <div className="flex items-center lg:hidden overflow-hidden flex-1 relative">
             <div className="flex animate-marquee whitespace-nowrap">
-              <span className="pr-8">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
-              <span className="pr-8">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
+              <span className="pr-8">RockOrBust is now powered by a decentralized P2P Mesh-Flow architecture</span>
+              <span className="pr-8">RockOrBust is now powered by a decentralized P2P Mesh-Flow architecture</span>
             </div>
           </div>
           {/* Desktop Static Span (Exactly as before) */}
-          <span className="hidden lg:block whitespace-nowrap">RockOrBust Playwright Extra plugin is now live with full Puppeteer support</span>
+          <span className="hidden lg:block whitespace-nowrap">RockOrBust is now powered by a decentralized P2P Mesh-Flow architecture</span>
           <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={2} className="shrink-0" />
         </div>
       </div>
@@ -34,12 +34,12 @@ export function Hero() {
         <div className="flex-[1.6] flex flex-col justify-start border-b lg:border-b-0 border-dashed border-[#333]">
           {/* Content Box */}
           <div className="grid-cell-x pt-10 pb-16">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.1] tracking-tight mb-6 text-white max-w-xl">
-              Decentralized stealth proxy network
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.1] tracking-tight mb-6 text-white max-w-xl uppercase">
+              Decentralized P2P stealth proxy network
             </h1>
 
             <p className="text-base sm:text-lg text-[#A3A3A3] max-w-lg mb-10 leading-relaxed font-light">
-              Turn your devices into a decentralized residential proxy network and use it seamlessly with Playwright and Puppeteer. Fully open source.
+              Leverage a direct P2P connection to residential nodes for unblockable browser automation. High-performance, secure, and fully open source.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-4 mb-10 w-full">

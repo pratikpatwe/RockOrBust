@@ -63,7 +63,7 @@ export function Installation() {
         <div className="lg:col-span-2 grid-cell-x py-12 border-b border-dashed border-[#333]">
           <h2 className="text-3xl font-semibold tracking-tight uppercase">Unified Installation</h2>
           <p className="text-[#A3A3A3] mt-2 max-w-2xl font-light">
-            Choose your pillar. Run a residential node to contribute, or drop in the SDK to leverage the network in your Playwright scripts.
+            Choose your pillar. Run a residential node to contribute, or drop in the SDK to coordinate a direct, high-speed P2P connection between your browser and the network.
           </p>
         </div>
 
@@ -80,19 +80,19 @@ export function Installation() {
           <div className="mt-4">
             <CodeUsage 
               ts={`import { chromium } from 'playwright-extra';
-import rockorbust from '@rockorbust/extra-plugin';
-
-chromium.use(rockorbust({
+const rockorbust = require('@rockorbust/extra-plugin')({
   key: 'your_rob_key'
-}));
+});
+
+chromium.use(rockorbust);
 
 const browser = await chromium.launch();`}
               js={`const { chromium } = require('playwright-extra');
-const rockorbust = require('@rockorbust/extra-plugin');
-
-chromium.use(rockorbust({
+const rockorbust = require('@rockorbust/extra-plugin')({
   key: 'your_rob_key'
-}));
+});
+
+chromium.use(rockorbust);
 
 const browser = await chromium.launch();`}
             />
@@ -106,7 +106,7 @@ const browser = await chromium.launch();`}
             <span className="text-white font-mono bg-[#222] px-2 py-1 text-xs border border-[#333]">NPM</span>
           </div>
           <p className="text-[#A3A3A3] mb-8 flex-1 font-light text-sm leading-relaxed">
-            Zero-dependency Playwright wrapper with built-in stealth mocks and residential routing.
+            Zero-dependency Playwright wrapper with built-in stealth mocks and native P2P Mesh-Flow routing.
           </p>
           <CopySnippet command="npm i @rockorbust/playwright-plugin" variant="window" />
           <div className="mt-4">

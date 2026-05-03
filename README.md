@@ -13,13 +13,12 @@ graph TD
     subgraph "1. Client Layer (SDKs)"
         A1["@rockorbust/playwright-plugin"]
         A2["@rockorbust/extra-plugin"]
-        A3["Standard Proxy Client"]
     end
 
-    subgraph "2. Hub (Gateway)"
+    subgraph "2. Control Plane (Gateway)"
         B["RockOrBust Gateway"]
         B1["Auth & Key Validation (Supabase)"]
-        B2["Latency-Based Load Balancer"]
+        B2["WebRTC Signaling Orchestrator"]
         B3["Public Dashboard (Web App)"]
         B --> B1
         B --> B2
@@ -32,9 +31,11 @@ graph TD
         C3["Go CLI (macOS)"]
     end
 
-    A1 & A2 & A3 -- "HTTP CONNECT" --> B
-    B2 -- "Secure WebSocket Tunnel" --> C1 & C2 & C3
-    C1 & C2 & C3 -- "Final Request" --> D["Target Website"]
+    A1 & A2 -- "1. Signaling" --> B2
+    B2 -- "2. WS Control" --> C1 & C2 & C3
+    
+    A1 & A2 -. "3. Direct P2P Mesh-Flow (WebRTC)" .-> C1 & C2 & C3
+    C1 & C2 & C3 -- "4. Final Request" --> D["Target Website"]
 ```
 
 ---
@@ -47,12 +48,12 @@ A high-performance standalone binary that contributes residential connections to
 - **Cross-Platform:** Native binaries for Windows, Linux, and macOS.
 - **Background Persistence:** Runs as a lightweight daemon with built-in autostart.
 
-### 2. The Hub (Gateway)
-The central orchestration layer that handles authentication and routing.
-- **Latency-Based Selection:** Automatically routes traffic through the fastest available node.
-- **IP Rotation:** Every request can hit a different residential IP.
-- **ROB Key Auth:** Simple, secure key-based authentication.
-- **Global Telemetry:** Exposes real-time network health via a high-performance stats API.
+### 2. The Control Plane (Gateway)
+The central orchestration layer that handles authentication and P2P signaling.
+- **Signaling Orchestrator:** Manages WebRTC handshakes between SDKs and residential nodes.
+- **P2P-First Architecture:** Traffic flows directly from the SDK to the residential node, bypassing the Gateway.
+- **ROB Key Auth:** Simple, secure key-based authentication with Supabase integration.
+- **Global Telemetry:** Exposes real-time network health and node distribution via a high-performance stats API.
 
 ### 3. The Dashboard (Web)
 A premium, brutalist-designed landing page and monitoring interface.
@@ -127,7 +128,9 @@ chromium.use(rockorbust);
 | **Installation** | `@rockorbust/playwright-plugin` | `@rockorbust/extra-plugin` |
 | **Stealth** | **Built-in**: Native JS mocks for WebGL, UA, etc. | **External**: Use with `puppeteer-extra-plugin-stealth`. |
 | **Compatibility** | Playwright Only | Playwright-Extra & Puppeteer-Extra |
-| **Fallback Options** | VPS or Local Machine | VPS or Local Machine |
+| **Proxy Method** | **P2P Mesh-Flow**: Direct WebRTC | **P2P Mesh-Flow**: Direct WebRTC |
+| **Relay Fallback** | Gateway WebSocket Tunnel | Gateway WebSocket Tunnel |
+| **Local Fallback** | Supported | Supported |
 
 ---
 

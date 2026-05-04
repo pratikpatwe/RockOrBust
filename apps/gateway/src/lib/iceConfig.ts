@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 export function getIceConfig() {
   const servers = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -9,11 +11,18 @@ export function getIceConfig() {
   const turnHost = process.env.TURN_HOST || 'robapi.buildshot.xyz';
   
   if (turnSecret) {
-    // Basic static auth for coturn
+    const ttl = 86400; // 24 hours
+    const timestamp = Math.floor(Date.now() / 1000) + ttl;
+    const username = `${timestamp}:rockorbust`;
+    const credential = crypto
+      .createHmac('sha1', turnSecret)
+      .update(username)
+      .digest('base64');
+
     servers.push({
       urls: `turn:${turnHost}:3478`,
-      username: 'rockorbust', // In a production env with dynamic auth, this would be short-lived
-      credential: turnSecret,
+      username,
+      credential,
     } as any);
   }
 

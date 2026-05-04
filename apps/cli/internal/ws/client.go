@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -38,6 +39,7 @@ type Client struct {
 	handler           MessageHandler
 	signalingHandler  SignalingHandler
 	quit              chan struct{}
+	writeMu           sync.Mutex
 }
 
 // SetSignalingHandler registers the P2P signaling handler.
@@ -165,12 +167,17 @@ func (c *Client) readLoop(conn *websocket.Conn) {
 		for {
 			select {
 			case <-ticker.C:
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				c.writeMu.Lock()
+				err := conn.WriteMessage(websocket.PingMessage, nil)
+				c.writeMu.Unlock()
+				if err != nil {
 					return
 				}
 			case <-c.quit:
+				c.writeMu.Lock()
 				conn.WriteMessage(websocket.CloseMessage,
 					websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutting down"))
+				c.writeMu.Unlock()
 				return
 			}
 		}
@@ -207,15 +214,20 @@ func nextBackoff(current time.Duration) time.Duration {
 }
 
 // SendMessage is a convenience helper for sending a JSON-encoded message back to the gateway.
-func SendMessage(conn *websocket.Conn, msg any) error {
+func (c *Client) SendMessage(conn *websocket.Conn, msg any) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to serialize message: %w", err)
 	}
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
 // reportLatency periodically measures latency and sends it to the gateway.
+// Note: This measures the node's internet latency to Cloudflare (1.1.1.1),
+// not the RTT to the Gateway. This serves as a proxy metric for the node's general
+// internet health and connection quality.
 func (c *Client) reportLatency(conn *websocket.Conn) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
@@ -230,7 +242,7 @@ func (c *Client) reportLatency(conn *websocket.Conn) {
 			if err == nil {
 				latency := time.Since(start).Milliseconds()
 				conn_test.Close()
-				SendMessage(conn, map[string]interface{}{
+				c.SendMessage(conn, map[string]interface{}{
 					"type": "latency",
 					"ms":   latency,
 				})
@@ -266,7 +278,7 @@ func (c *Client) tryHandleSignaling(conn *websocket.Conn, raw []byte) bool {
 			log.Printf("[ws] failed to handle signaling offer: %v", err)
 			return
 		}
-		if err := SendMessage(conn, answer); err != nil {
+		if err := c.SendMessage(conn, answer); err != nil {
 			log.Printf("[ws] failed to send SIGNALING_ANSWER: %v", err)
 		}
 	}()

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/pion/webrtc/v4"
 )
@@ -151,8 +152,12 @@ func (sm *SessionManager) HandleOffer(sessionID, sdpOffer string, remoteCandidat
 		return "", nil, fmt.Errorf("failed to set local description: %w", err)
 	}
 
-	// Wait for ICE gathering to complete
-	<-candidatesDone
+	// Wait for ICE gathering to complete or timeout
+	select {
+	case <-candidatesDone:
+	case <-time.After(8 * time.Second):
+		log.Printf("[p2p] ICE gathering timed out for session %s", sessionID)
+	}
 
 	// Store the session
 	sm.mu.Lock()

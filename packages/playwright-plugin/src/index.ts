@@ -19,7 +19,8 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
 async function checkNodeAvailability(gatewayUrl: string, key: string): Promise<boolean> {
   return new Promise((resolve) => {
     try {
-      const url = new URL(gatewayUrl);
+      const httpGatewayUrl = gatewayUrl.replace(/^wss:\/\//i, 'https://').replace(/^ws:\/\//i, 'http://');
+      const url = new URL(httpGatewayUrl);
       const options = {
         hostname: url.hostname,
         port: url.port || (url.protocol === 'https:' ? 443 : 80),
@@ -145,13 +146,18 @@ function wrapBrowserType<T extends BrowserType>(browserType: T): T {
       }
 
       // Smart Error Diagnostics
+      let lastDiagCheck = 0;
       context.on('requestfailed', async (request) => {
         const failure = request.failure();
         if (failure && (failure.errorText.includes('ERR_TUNNEL_CONNECTION_FAILED') || failure.errorText.includes('ERR_PROXY_CONNECTION_FAILED'))) {
-          const hasNodes = await checkNodeAvailability(gatewayUrl, key);
-          if (!hasNodes) {
-            console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
-            console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your launch options.\n\x1b[0m`);
+          const now = Date.now();
+          if (now - lastDiagCheck > 10000) {
+            lastDiagCheck = now;
+            const hasNodes = await checkNodeAvailability(gatewayUrl, key);
+            if (!hasNodes) {
+              console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
+              console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your launch options.\n\x1b[0m`);
+            }
           }
         }
       });

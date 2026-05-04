@@ -139,10 +139,12 @@ app.use('/api/signal', publicLimiter, signalRoutes);
  */
 async function reconcileNodeState(): Promise<void> {
   console.log('[boot] Reconciling stale node state in Supabase...');
+  const threshold = new Date(Date.now() - 60000).toISOString();
   const { error, count } = await supabase
     .from('rob_nodes')
     .update({ status: false })
-    .eq('status', true);
+    .eq('status', true)
+    .lt('last_ping', threshold);
 
   if (error) {
     // Non-fatal: log and continue. Stale rows will self-correct on next connect/disconnect.

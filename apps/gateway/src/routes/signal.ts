@@ -61,7 +61,6 @@ router.post('/:keyId', async (req, res) => {
   try {
     const answer = await promise;
     // Inject ICE config into the response
-    const iceServers = getIceConfig();
     return res.json({
       sdp: answer.sdp,
       candidates: answer.candidates,

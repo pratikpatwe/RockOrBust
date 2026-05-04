@@ -15,7 +15,8 @@ export interface SignalingAnswer {
 export async function sendSignalingOffer(gatewayUrl: string, key: string, offer: SignalingOffer, timeoutMs = 10000): Promise<SignalingAnswer> {
   return new Promise((resolve, reject) => {
     try {
-      const url = new URL(`${gatewayUrl}/api/signal/${key}`);
+      const httpGatewayUrl = gatewayUrl.replace(/^wss:\/\//i, 'https://').replace(/^ws:\/\//i, 'http://');
+      const url = new URL(`${httpGatewayUrl}/api/signal/${key}`);
       const data = JSON.stringify(offer);
       const options = {
         hostname: url.hostname,

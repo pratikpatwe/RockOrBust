@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -138,10 +139,7 @@ func (h *Handler) HandleBinaryP2PMessage(raw []byte, sender func(data []byte) er
 		go h.handleConnectRequest(h.binarySender(sender), req)
 
 	case protocol.BinaryMsgConnectData:
-		h.handleConnectData(protocol.ConnectDataMessage{
-			ID:   id,
-			Data: base64.StdEncoding.EncodeToString(payload),
-		})
+		h.handleConnectDataRaw(id, payload)
 
 	case protocol.BinaryMsgConnectClose:
 		h.handleConnectClose(id)
@@ -255,11 +253,11 @@ func (h *Handler) handleHTTPRequest(sender func([]byte) error, msg protocol.HTTP
 		return
 	}
 
-	// Flatten response headers to map[string]string (first value only)
+	// Flatten response headers to map[string]string (joining multiple values)
 	headers := make(map[string]string, len(resp.Header))
 	for k, vals := range resp.Header {
 		if len(vals) > 0 {
-			headers[k] = vals[0]
+			headers[k] = strings.Join(vals, ", ")
 		}
 	}
 
@@ -350,6 +348,22 @@ func (h *Handler) handleConnectData(msg protocol.ConnectDataMessage) {
 
 	if _, err := tcpConn.Write(data); err != nil {
 		log.Printf("[proxy] failed to write to tunnel %s: %v", msg.ID, err)
+	}
+}
+
+// handleConnectDataRaw forwards raw byte data from the caller through the open TCP tunnel.
+func (h *Handler) handleConnectDataRaw(id string, data []byte) {
+	h.mu.Lock()
+	tcpConn, ok := h.tunnels[id]
+	h.mu.Unlock()
+
+	if !ok {
+		log.Printf("[proxy] CONNECT_DATA for unknown tunnel: %s", id)
+		return
+	}
+
+	if _, err := tcpConn.Write(data); err != nil {
+		log.Printf("[proxy] failed to write to tunnel %s: %v", id, err)
 	}
 }
 

@@ -22,8 +22,6 @@ class NodeRegistry {
   // Map of KeyID -> Array of active WebSocket connections
   private connections: Map<string, Set<NodeConnection>> = new Map();
 
-  private totalNodes: number = 0;
-
   register(keyId: string, nodeId: string, hostname: string, ws: WebSocket, ipAddress: string) {
     if (!this.connections.has(keyId)) {
       this.connections.set(keyId, new Set());
@@ -45,7 +43,6 @@ class NodeRegistry {
         latency: 999,
         location 
       });
-      this.totalNodes++;
     }
   }
 
@@ -54,7 +51,11 @@ class NodeRegistry {
   }
 
   getTotalCount(): number {
-    return this.totalNodes;
+    let count = 0;
+    for (const keyConnections of this.connections.values()) {
+      count += keyConnections.size;
+    }
+    return count;
   }
 
   private calculateTier(latency?: number): 'fast' | 'medium' | 'slow' {
@@ -119,7 +120,6 @@ class NodeRegistry {
       for (const conn of keyConnections) {
         if (conn.ws === ws) {
           keyConnections.delete(conn);
-          this.totalNodes = Math.max(0, this.totalNodes - 1);
           break;
         }
       }

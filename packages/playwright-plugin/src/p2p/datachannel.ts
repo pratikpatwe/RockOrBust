@@ -22,41 +22,66 @@ export async function establishP2PConnection(gatewayUrl: string, key: string): P
     pc.onLocalCandidate((candidate, mid) => {
       localCandidates.push(JSON.stringify({
         candidate,
-        sdpMid: mid,
-        sdpMLineIndex: 0
+        sdpMid: mid
       }));
     });
 
     const channel = pc.createDataChannel('proxy');
 
+    let currentSdp = '';
     pc.onLocalDescription((sdp, type) => {
-      if (type === 'offer') {
-        // Give it 500ms to gather local ICE candidates before signaling
-        setTimeout(async () => {
-          try {
-            const answer = await sendSignalingOffer(gatewayUrl, key, {
-              sdp,
-              candidates: localCandidates
-            });
+      if (type === 'offer') currentSdp = sdp;
+    });
 
-            pc.setRemoteDescription(answer.sdp, 'answer');
-
-            for (const candStr of answer.candidates) {
-              try {
-                const cand = JSON.parse(candStr);
-                pc.addRemoteCandidate(cand.candidate, cand.sdpMid);
-              } catch (e) {}
-            }
-          } catch (err) {
-            if (!resolved) {
-              resolved = true;
-              pc.close();
-              reject(err);
-            }
+    let gatheringComplete = false;
+    pc.onGatheringStateChange((state) => {
+      if (state === 'complete' && !gatheringComplete) {
+        gatheringComplete = true;
+        sendSignalingOffer(gatewayUrl, key, {
+          sdp: currentSdp,
+          candidates: localCandidates
+        }).then(answer => {
+          pc.setRemoteDescription(answer.sdp, 'answer');
+          for (const candStr of answer.candidates) {
+            try {
+              const cand = JSON.parse(candStr);
+              pc.addRemoteCandidate(cand.candidate, cand.sdpMid);
+            } catch (e) {}
           }
-        }, 500);
+        }).catch(err => {
+          if (!resolved) {
+            resolved = true;
+            pc.close();
+            reject(err);
+          }
+        });
       }
     });
+
+    // Fallback if gathering takes too long (e.g. STUN blocked)
+    setTimeout(() => {
+      if (!gatheringComplete && currentSdp) {
+        gatheringComplete = true;
+        sendSignalingOffer(gatewayUrl, key, {
+          sdp: currentSdp,
+          candidates: localCandidates
+        }).then(answer => {
+          pc.setRemoteDescription(answer.sdp, 'answer');
+          for (const candStr of answer.candidates) {
+            try {
+              const cand = JSON.parse(candStr);
+              pc.addRemoteCandidate(cand.candidate, cand.sdpMid);
+            } catch (e) {}
+          }
+        }).catch(err => {
+          if (!resolved) {
+            resolved = true;
+            pc.close();
+            reject(err);
+          }
+        });
+      }
+    }, 2000);
 
     channel.onOpen(() => {
       if (!resolved) {

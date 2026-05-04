@@ -105,6 +105,14 @@ export async function startLocalProxy(session: P2PSession): Promise<LocalProxy> 
       url: req.url
     });
 
+    if (head && head.length > 0) {
+      sendOverDc({
+        type: 'CONNECT_DATA',
+        id,
+        data: head.toString('base64')
+      });
+    }
+
     socket.on('data', (data: Buffer) => {
       sendOverDc({
         type: 'CONNECT_DATA',

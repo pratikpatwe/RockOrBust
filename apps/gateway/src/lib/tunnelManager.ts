@@ -57,7 +57,13 @@ class TunnelManager {
       body: body ? body.toString('base64') : null
     };
 
-    ws.send(JSON.stringify(payload));
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
+    } else {
+      res.writeHead(502);
+      res.end('Node Disconnected');
+      return;
+    }
 
     // Cleanup if the client disconnects before the node responds
     res.on('close', () => {
@@ -79,7 +85,12 @@ class TunnelManager {
       url: req.url, // e.g., google.com:443
     };
 
-    ws.send(JSON.stringify(payload));
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
+    } else {
+      socket.end();
+      return;
+    }
 
     // Handle data coming from the Playwright client
     socket.on('data', (data) => {

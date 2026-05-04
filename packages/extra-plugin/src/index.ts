@@ -49,7 +49,8 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
   private async checkNodeAvailability(gatewayUrl: string, key: string): Promise<boolean> {
     return new Promise((resolve) => {
       try {
-        const url = new URL(gatewayUrl);
+        const httpGatewayUrl = gatewayUrl.replace(/^wss:\/\//i, 'https://').replace(/^ws:\/\//i, 'http://');
+        const url = new URL(httpGatewayUrl);
         const options = {
           hostname: url.hostname,
           port: url.port || (url.protocol === 'https:' ? 443 : 80),
@@ -88,7 +89,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
    * Supports launch(), launchPersistentContext(), and connect().
    */
   async beforeLaunch(options: any) {
-    const pluginOpts = (this as any).opts || {};
+    const pluginOpts = this.opts || {};
     const opts = { ...this.defaults, ...pluginOpts };
     const { key, gatewayUrl, fallbackToLocal } = opts;
 
@@ -102,7 +103,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     // Handle Local Fallback
     if (fallbackToLocal) {
       (this as any).debug('Checking node availability for Local Fallback...');
-      const hasNodes = await this.checkNodeAvailability(gatewayUrl, key);
+      const hasNodes = await this.checkNodeAvailability(gatewayUrl!, key);
       if (!hasNodes) {
         (this as any).debug('No residential nodes available. Falling back to local connection.');
         return; // Skip proxy configuration
@@ -112,7 +113,7 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     // Try P2P
     try {
       console.log('[RockOrBust] Establishing P2P DataChannel connection...');
-      const session = await establishP2PConnection(gatewayUrl, key);
+      const session = await establishP2PConnection(gatewayUrl!, key);
       this.localProxy = await startLocalProxy(session);
       console.log(`[RockOrBust] P2P connection established. Local proxy running on port ${this.localProxy.port}`);
 
@@ -156,11 +157,13 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
     };
   }
 
+  private lastDiagCheck = 0;
+
   /**
    * Patches new pages/contexts with reactive error diagnostics.
    */
   private async setupErrorDiagnostics(page: any) {
-    const pluginOpts = (this as any).opts || {};
+    const pluginOpts = this.opts || {};
     const opts = { ...this.defaults, ...pluginOpts };
     const { key, gatewayUrl } = opts;
 
@@ -170,10 +173,14 @@ class RockOrBustExtraPlugin extends PuppeteerExtraPlugin {
       const errorText = failure?.errorText || '';
       
       if (errorText.includes('ERR_TUNNEL_CONNECTION_FAILED') || errorText.includes('ERR_PROXY_CONNECTION_FAILED')) {
-        const hasNodes = await this.checkNodeAvailability(gatewayUrl, key!);
-        if (!hasNodes) {
-          console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
-          console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your plugin options.\n\x1b[0m`);
+        const now = Date.now();
+        if (now - this.lastDiagCheck > 10000) {
+          this.lastDiagCheck = now;
+          const hasNodes = await this.checkNodeAvailability(gatewayUrl!, key!);
+          if (!hasNodes) {
+            console.error(`\n\x1b[31m[RockOrBust] CRITICAL: Connection failed because no residential nodes are available for your key.\x1b[0m`);
+            console.error(`\x1b[33m[RockOrBust] TIP: Turn on a Go CLI node or enable 'fallbackToLocal: true' in your plugin options.\n\x1b[0m`);
+          }
         }
       }
     });
